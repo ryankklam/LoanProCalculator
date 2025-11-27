@@ -23,11 +23,20 @@ const isHoliday = (date: Date, holidays: Holiday[]): boolean => {
   });
 };
 
-// Helper to get next business day
+// Helper to get next business day (Following Convention)
 const getNextBusinessDay = (date: Date, holidays: Holiday[]): Date => {
   let current = date;
   while (isHoliday(current, holidays)) {
     current = addDays(current, 1);
+  }
+  return current;
+};
+
+// Helper to get previous business day (Preceding Convention)
+const getPreviousBusinessDay = (date: Date, holidays: Holiday[]): Date => {
+  let current = date;
+  while (isHoliday(current, holidays)) {
+    current = addDays(current, -1);
   }
   return current;
 };
@@ -59,7 +68,7 @@ export const calculateSchedule = (
   rateRanges: RateRange[],
   repayments: RepaymentEvent[]
 ): { schedule: Installment[]; summary: Summary } => {
-  const { amount, initialRate, tenureMonths, startDate } = params;
+  const { amount, initialRate, tenureMonths, startDate, holidayShiftMode } = params;
   
   const schedule: Installment[] = [];
   const startObj = parseISO(startDate);
@@ -75,10 +84,17 @@ export const calculateSchedule = (
 
   for (let i = 1; i <= tenureMonths; i++) {
     const nominalDate = addMonths(startObj, i);
-    let actualDate = getNextBusinessDay(nominalDate, holidays);
+    let actualDate: Date;
+
+    // Apply Holiday Shifting Logic
+    if (holidayShiftMode === 'BEFORE') {
+      actualDate = getPreviousBusinessDay(nominalDate, holidays);
+    } else {
+      actualDate = getNextBusinessDay(nominalDate, holidays);
+    }
     
     // Ensure actual date didn't stay on same day (though addMonths usually changes it)
-    // and is after previous date
+    // and is strictly after previous date to avoid zero or negative day periods
     if (!isAfter(actualDate, previousDate)) {
         actualDate = addDays(previousDate, 1);
     }
@@ -87,7 +103,8 @@ export const calculateSchedule = (
     const notes: string[] = [];
 
     if (!isSameDay(nominalDate, actualDate)) {
-      notes.push(`Deferred from ${format(nominalDate, 'MMM d')} (Holiday)`);
+      const shiftDir = isAfter(actualDate, nominalDate) ? 'Deferred' : 'Preponed';
+      notes.push(`${shiftDir} from ${format(nominalDate, 'MMM d')} (Holiday)`);
     }
 
     // Check for Rate Change to update PMT (Annuity Recalculation)

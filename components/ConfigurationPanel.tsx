@@ -1,6 +1,6 @@
 import React from 'react';
 import { LoanParams } from '../types';
-import { Calculator, Calendar, DollarSign, Percent } from 'lucide-react';
+import { Calculator, Calendar, DollarSign, Percent, Settings2 } from 'lucide-react';
 
 interface Props {
   params: LoanParams;
@@ -8,11 +8,11 @@ interface Props {
 }
 
 export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     onChange({
       ...params,
-      [name]: name === 'startDate' ? value : parseFloat(value) || 0,
+      [name]: name === 'startDate' || name === 'holidayShiftMode' ? value : parseFloat(value) || 0,
     });
   };
 
@@ -90,6 +90,25 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
             />
           </div>
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Holiday Adjustment</label>
+          <div className="relative rounded-md shadow-sm">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Settings2 className="h-4 w-4 text-gray-400" />
+            </div>
+            <select
+              name="holidayShiftMode"
+              value={params.holidayShiftMode}
+              onChange={handleChange}
+              className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm bg-white"
+            >
+                <option value="AFTER">Next Business Day (后顺)</option>
+                <option value="BEFORE">Previous Business Day (前顺)</option>
+            </select>
+          </div>
+        </div>
+
       </div>
     </div>
   );

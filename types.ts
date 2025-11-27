@@ -3,6 +3,7 @@ export interface LoanParams {
   initialRate: number; // Percentage (e.g., 5.5)
   tenureMonths: number;
   startDate: string; // ISO Date string YYYY-MM-DD
+  holidayShiftMode: 'BEFORE' | 'AFTER'; // 'BEFORE' = Preceding, 'AFTER' = Following
 }
 
 export interface Holiday {

@@ -11,7 +11,9 @@ A professional-grade, React-based loan repayment calculator designed to handle c
 - **CSV Export:** Download the full schedule, including segmented calculation details, for analysis in Excel.
 
 ### Advanced Financial Logic
-- **Holiday Management:** Define holiday intervals. Repayment dates falling on holidays are automatically shifted to the next business day, with interest accruing for the deferred days.
+- **Holiday Management:** Define holiday intervals. Repayment dates falling on holidays are automatically adjusted based on your preference:
+  - **Next Business Day (Following):** Shifts the payment to the first business day after the holiday.
+  - **Previous Business Day (Preceding):** Shifts the payment to the last business day before the holiday.
 - **Variable Interest Rates:** Support for floating rates. Define specific date ranges where the interest rate changes; the calculator adjusts daily accruals and recalculates the monthly installment (PMT) automatically.
 - **Extra Repayments:** Add one-off lump sum payments. The system recalculates the schedule, reducing the principal and future interest immediately.
 
@@ -37,10 +39,11 @@ Use the panel on the left to input:
 - **Interest Rate**: The annual nominal interest rate.
 - **Tenure**: Total duration in months.
 - **Start Date**: The date of loan disbursement.
+- **Holiday Adjustment**: Select whether to shift due dates to the "Next Business Day" or "Previous Business Day" when they fall on a holiday.
 
 ### 2. Managing Events
 Use the **Events Panel** to handle irregularities:
-- **Holiday Intervals**: Add start/end dates for holidays. Payments due on these days move forward.
+- **Holiday Intervals**: Add start/end dates for holidays. Payments due on these days move according to your adjustment setting.
 - **Interest Rate Intervals**: If the rate changes (e.g., after 1 year), add the new rate and the date range.
 - **Extra Repayments**: Add the date and amount for any pre-payments.
 
