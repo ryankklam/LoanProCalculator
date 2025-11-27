@@ -1,0 +1,247 @@
+import React, { useState } from 'react';
+import { Holiday, RateRange, RepaymentEvent } from '../types';
+import { Trash2, CalendarOff, TrendingUp, ArrowRight, DollarSign, Coins } from 'lucide-react';
+
+interface Props {
+  holidays: Holiday[];
+  setHolidays: React.Dispatch<React.SetStateAction<Holiday[]>>;
+  rateChanges: RateRange[];
+  setRateChanges: React.Dispatch<React.SetStateAction<RateRange[]>>;
+  repayments: RepaymentEvent[];
+  setRepayments: React.Dispatch<React.SetStateAction<RepaymentEvent[]>>;
+}
+
+export const EventsPanel: React.FC<Props> = ({ 
+  holidays, 
+  setHolidays, 
+  rateChanges: rateRanges, 
+  setRateChanges: setRateRanges,
+  repayments,
+  setRepayments
+}) => {
+  const [newHoliday, setNewHoliday] = useState({ startDate: '', endDate: '', name: '' });
+  const [newRate, setNewRate] = useState({ startDate: '', endDate: '', rate: '' });
+  const [newRepayment, setNewRepayment] = useState({ date: '', amount: '' });
+
+  const addHoliday = () => {
+    if (newHoliday.startDate && newHoliday.endDate && newHoliday.name) {
+      if (newHoliday.startDate > newHoliday.endDate) {
+          alert("Start date must be before or equal to End date");
+          return;
+      }
+      setHolidays(prev => [...prev, { 
+        id: Date.now().toString(), 
+        startDate: newHoliday.startDate, 
+        endDate: newHoliday.endDate, 
+        name: newHoliday.name 
+      }]);
+      setNewHoliday({ startDate: '', endDate: '', name: '' });
+    }
+  };
+
+  const removeHoliday = (id: string) => {
+    setHolidays(prev => prev.filter(h => h.id !== id));
+  };
+
+  const addRateRange = () => {
+    if (newRate.startDate && newRate.endDate && newRate.rate) {
+       if (newRate.startDate > newRate.endDate) {
+          alert("Start date must be before or equal to End date");
+          return;
+      }
+      setRateRanges(prev => [...prev, { 
+        id: Date.now().toString(), 
+        startDate: newRate.startDate,
+        endDate: newRate.endDate, 
+        rate: parseFloat(newRate.rate) 
+      }]);
+      setNewRate({ startDate: '', endDate: '', rate: '' });
+    }
+  };
+
+  const removeRateRange = (id: string) => {
+    setRateRanges(prev => prev.filter(r => r.id !== id));
+  };
+
+  const addRepayment = () => {
+    if (newRepayment.date && newRepayment.amount) {
+      setRepayments(prev => [...prev, {
+        id: Date.now().toString(),
+        date: newRepayment.date,
+        amount: parseFloat(newRepayment.amount)
+      }]);
+      setNewRepayment({ date: '', amount: '' });
+    }
+  };
+
+  const removeRepayment = (id: string) => {
+    setRepayments(prev => prev.filter(r => r.id !== id));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Holidays Section */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex items-center gap-2 mb-4 text-rose-700">
+          <CalendarOff className="w-5 h-5" />
+          <h3 className="font-bold text-lg">Holiday Intervals</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <input
+                type="date"
+                className="border rounded px-3 py-1.5 text-sm flex-1"
+                value={newHoliday.startDate}
+                onChange={(e) => setNewHoliday({ ...newHoliday, startDate: e.target.value })}
+            />
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+            <input
+                type="date"
+                className="border rounded px-3 py-1.5 text-sm flex-1"
+                value={newHoliday.endDate}
+                onChange={(e) => setNewHoliday({ ...newHoliday, endDate: e.target.value })}
+            />
+          </div>
+          <div className="flex gap-2">
+            <input
+                type="text"
+                placeholder="Holiday Name"
+                className="border rounded px-3 py-1.5 text-sm flex-1"
+                value={newHoliday.name}
+                onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
+            />
+            <button 
+                onClick={addHoliday}
+                className="bg-rose-100 text-rose-700 px-4 rounded hover:bg-rose-200 transition-colors font-medium text-sm"
+            >
+                Add
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-32 overflow-y-auto space-y-2">
+            {holidays.length === 0 && <p className="text-gray-400 text-xs italic text-center">No holidays added</p>}
+          {holidays.map(h => (
+            <div key={h.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
+              <div className="flex flex-col">
+                  <span className="font-medium text-gray-700">{h.name}</span>
+                  <span className="text-xs text-gray-500">{h.startDate} to {h.endDate}</span>
+              </div>
+              <button onClick={() => removeHoliday(h.id)} className="text-gray-400 hover:text-red-500">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Floating Rates Section */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex items-center gap-2 mb-4 text-indigo-700">
+          <TrendingUp className="w-5 h-5" />
+          <h3 className="font-bold text-lg">Interest Rate Intervals</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2 mb-4">
+             <div className="flex items-center gap-2">
+                <input
+                    type="date"
+                    className="border rounded px-3 py-1.5 text-sm flex-1"
+                    value={newRate.startDate}
+                    onChange={(e) => setNewRate({ ...newRate, startDate: e.target.value })}
+                />
+                <ArrowRight className="w-4 h-4 text-gray-400" />
+                <input
+                    type="date"
+                    className="border rounded px-3 py-1.5 text-sm flex-1"
+                    value={newRate.endDate}
+                    onChange={(e) => setNewRate({ ...newRate, endDate: e.target.value })}
+                />
+            </div>
+            <div className="flex gap-2">
+                <input
+                    type="number"
+                    placeholder="Rate %"
+                    step="0.01"
+                    className="border rounded px-3 py-1.5 text-sm flex-1"
+                    value={newRate.rate}
+                    onChange={(e) => setNewRate({ ...newRate, rate: e.target.value })}
+                />
+                <button 
+                    onClick={addRateRange}
+                    className="bg-indigo-100 text-indigo-700 px-4 rounded hover:bg-indigo-200 transition-colors font-medium text-sm"
+                >
+                    Add
+                </button>
+            </div>
+        </div>
+
+        <div className="max-h-32 overflow-y-auto space-y-2">
+            {rateRanges.length === 0 && <p className="text-gray-400 text-xs italic text-center">No custom rates added</p>}
+          {rateRanges.map(r => (
+            <div key={r.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
+              <div className="flex flex-col">
+                 <span className="font-bold text-indigo-600">{r.rate}%</span>
+                 <span className="text-xs text-gray-500">{r.startDate} to {r.endDate}</span>
+              </div>
+              <button onClick={() => removeRateRange(r.id)} className="text-gray-400 hover:text-red-500">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Extra Repayments Section */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex items-center gap-2 mb-4 text-emerald-700">
+          <Coins className="w-5 h-5" />
+          <h3 className="font-bold text-lg">Extra Repayments</h3>
+        </div>
+        
+        <div className="flex gap-2 mb-4">
+            <input
+                type="date"
+                className="border rounded px-3 py-1.5 text-sm flex-1"
+                value={newRepayment.date}
+                onChange={(e) => setNewRepayment({ ...newRepayment, date: e.target.value })}
+            />
+            <div className="relative flex-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
+                    <DollarSign className="h-3 w-3 text-gray-400" />
+                </div>
+                <input
+                    type="number"
+                    placeholder="Amount"
+                    className="border rounded px-3 py-1.5 pl-6 text-sm w-full"
+                    value={newRepayment.amount}
+                    onChange={(e) => setNewRepayment({ ...newRepayment, amount: e.target.value })}
+                />
+            </div>
+            <button 
+                onClick={addRepayment}
+                className="bg-emerald-100 text-emerald-700 px-4 rounded hover:bg-emerald-200 transition-colors font-medium text-sm"
+            >
+                Add
+            </button>
+        </div>
+
+        <div className="max-h-32 overflow-y-auto space-y-2">
+            {repayments.length === 0 && <p className="text-gray-400 text-xs italic text-center">No extra repayments</p>}
+          {repayments.map(r => (
+            <div key={r.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
+              <div className="flex flex-col">
+                 <span className="font-bold text-emerald-600">${r.amount}</span>
+                 <span className="text-xs text-gray-500">{r.date}</span>
+              </div>
+              <button onClick={() => removeRepayment(r.id)} className="text-gray-400 hover:text-red-500">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
