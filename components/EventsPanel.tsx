@@ -24,7 +24,7 @@ export const EventsPanel: React.FC<Props> = ({
   const [newRepayment, setNewRepayment] = useState({ date: '', amount: '' });
 
   const addHoliday = () => {
-    if (newHoliday.startDate && newHoliday.endDate && newHoliday.name) {
+    if (newHoliday.startDate && newHoliday.endDate) {
       if (newHoliday.startDate > newHoliday.endDate) {
           alert("Start date must be before or equal to End date");
           return;
@@ -33,7 +33,7 @@ export const EventsPanel: React.FC<Props> = ({
         id: Date.now().toString(), 
         startDate: newHoliday.startDate, 
         endDate: newHoliday.endDate, 
-        name: newHoliday.name 
+        name: newHoliday.name.trim() || 'Holiday'
       }]);
       setNewHoliday({ startDate: '', endDate: '', name: '' });
     }
@@ -106,7 +106,7 @@ export const EventsPanel: React.FC<Props> = ({
           <div className="flex gap-2">
             <input
                 type="text"
-                placeholder="Holiday Name"
+                placeholder="Holiday Name (Optional)"
                 className="border rounded px-3 py-1.5 text-sm flex-1"
                 value={newHoliday.name}
                 onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}

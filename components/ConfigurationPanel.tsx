@@ -1,6 +1,6 @@
 import React from 'react';
 import { LoanParams } from '../types';
-import { Calculator, Calendar, DollarSign, Percent, Settings2 } from 'lucide-react';
+import { Calculator, Calendar, DollarSign, Percent, Settings2, SlidersHorizontal } from 'lucide-react';
 
 interface Props {
   params: LoanParams;
@@ -12,7 +12,9 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
     const { name, value } = e.target;
     onChange({
       ...params,
-      [name]: name === 'startDate' || name === 'holidayShiftMode' ? value : parseFloat(value) || 0,
+      [name]: (name === 'startDate' || name === 'holidayShiftMode' || name === 'adjustmentStrategy') 
+        ? value 
+        : parseFloat(value) || 0,
     });
   };
 
@@ -107,6 +109,29 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
                 <option value="BEFORE">Previous Business Day (前顺)</option>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Recalculation Strategy</label>
+          <div className="relative rounded-md shadow-sm">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <SlidersHorizontal className="h-4 w-4 text-gray-400" />
+            </div>
+            <select
+              name="adjustmentStrategy"
+              value={params.adjustmentStrategy}
+              onChange={handleChange}
+              className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm bg-white"
+            >
+                <option value="CHANGE_INSTALLMENT">Variable Installment (变额不变期)</option>
+                <option value="CHANGE_TENURE">Variable Tenure (变期不变额)</option>
+            </select>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            {params.adjustmentStrategy === 'CHANGE_INSTALLMENT' 
+                ? "Keeps the end date fixed. Monthly payment changes."
+                : "Keeps monthly payment fixed. End date changes."}
+          </p>
         </div>
 
       </div>

@@ -11,10 +11,13 @@ A professional-grade, React-based loan repayment calculator designed to handle c
 - **CSV Export:** Download the full schedule, including segmented calculation details, for analysis in Excel.
 
 ### Advanced Financial Logic
+- **Recalculation Strategies:**
+  - **Variable Installment (Change Installment / 变额不变期):** Default. The loan duration remains fixed. If you make an extra repayment, your monthly payment amount decreases.
+  - **Variable Tenure (Change Tenure / 变期不变额):** The monthly payment amount remains fixed. If you make an extra repayment, the loan duration is shortened.
 - **Holiday Management:** Define holiday intervals. Repayment dates falling on holidays are automatically adjusted based on your preference:
   - **Next Business Day (Following):** Shifts the payment to the first business day after the holiday.
   - **Previous Business Day (Preceding):** Shifts the payment to the last business day before the holiday.
-- **Variable Interest Rates:** Support for floating rates. Define specific date ranges where the interest rate changes; the calculator adjusts daily accruals and recalculates the monthly installment (PMT) automatically.
+- **Variable Interest Rates:** Support for floating rates. Define specific date ranges where the interest rate changes; the calculator adjusts daily accruals and recalculates the monthly installment (PMT) automatically based on your chosen strategy.
 - **Extra Repayments:** Add one-off lump sum payments. The system recalculates the schedule, reducing the principal and future interest immediately.
 
 ### Segmented Precision
@@ -40,6 +43,7 @@ Use the panel on the left to input:
 - **Tenure**: Total duration in months.
 - **Start Date**: The date of loan disbursement.
 - **Holiday Adjustment**: Select whether to shift due dates to the "Next Business Day" or "Previous Business Day" when they fall on a holiday.
+- **Recalculation Strategy**: Choose between "Variable Installment" (Keep end date, change payment) or "Variable Tenure" (Keep payment, change end date).
 
 ### 2. Managing Events
 Use the **Events Panel** to handle irregularities:
@@ -61,8 +65,12 @@ Click **Generate Repayment Plan** to calculate.
 2.  **Daily Interest:** `Balance * (Rate / 100) / 365`.
 3.  **Payment Priority:** Interest is paid first; the remainder of the installment reduces the Principal.
 4.  **Recalculation:**
-    - If a **Repayment** occurs: The principal is reduced immediately. The PMT is recalculated for the remaining term using the current rate.
-    - If a **Rate Change** occurs: The PMT is recalculated for the remaining term using the new rate.
+    - If a **Repayment** occurs:
+      - **Change Installment:** The principal is reduced immediately. The PMT is recalculated for the remaining term using the current rate.
+      - **Change Tenure:** The PMT remains constant. Since principal reduces, the interest portion of the PMT drops, the principal repayment portion increases, paying off the loan faster.
+    - If a **Rate Change** occurs:
+      - **Change Installment:** The PMT is recalculated for the remaining term using the new rate.
+      - **Change Tenure:** The PMT generally remains constant, extending or shortening the loan duration naturally.
 
 ## 📦 Installation
 

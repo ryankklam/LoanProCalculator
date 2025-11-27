@@ -4,6 +4,7 @@ export interface LoanParams {
   tenureMonths: number;
   startDate: string; // ISO Date string YYYY-MM-DD
   holidayShiftMode: 'BEFORE' | 'AFTER'; // 'BEFORE' = Preceding, 'AFTER' = Following
+  adjustmentStrategy: 'CHANGE_INSTALLMENT' | 'CHANGE_TENURE'; // 'CHANGE_INSTALLMENT' = 变额不变期, 'CHANGE_TENURE' = 变期不变额
 }
 
 export interface Holiday {

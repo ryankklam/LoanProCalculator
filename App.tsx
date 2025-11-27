@@ -16,6 +16,7 @@ const App: React.FC = () => {
     tenureMonths: 12,
     startDate: new Date().toISOString().split('T')[0],
     holidayShiftMode: 'AFTER',
+    adjustmentStrategy: 'CHANGE_INSTALLMENT',
   });
 
   const [holidays, setHolidays] = useState<Holiday[]>([]);
