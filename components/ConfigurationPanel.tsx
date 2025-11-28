@@ -1,11 +1,21 @@
 import React from 'react';
 import { LoanParams } from '../types';
-import { Calculator, Calendar, DollarSign, Percent, Settings2, SlidersHorizontal } from 'lucide-react';
+import { Calculator, Calendar, DollarSign, Percent, Settings2, SlidersHorizontal, Info } from 'lucide-react';
 
 interface Props {
   params: LoanParams;
   onChange: (params: LoanParams) => void;
 }
+
+const Tooltip: React.FC<{ text: string }> = ({ text }) => (
+  <div className="group relative inline-flex items-center ml-2">
+    <Info className="w-4 h-4 text-gray-400 hover:text-blue-500 cursor-help transition-colors" />
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-center pointer-events-none leading-relaxed">
+      {text}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+    </div>
+  </div>
+);
 
 export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -27,7 +37,10 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
+          <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+            Loan Amount
+            <Tooltip text="The total principal amount borrowed from the bank." />
+          </label>
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <DollarSign className="h-4 w-4 text-gray-400" />
@@ -45,7 +58,10 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
 
         <div className="grid grid-cols-2 gap-4">
             <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Interest Rate (%)</label>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                Rate (%)
+                <Tooltip text="The annual nominal interest rate used for daily interest calculation (Actual/365)." />
+            </label>
             <div className="relative rounded-md shadow-sm">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <Percent className="h-4 w-4 text-gray-400" />
@@ -63,7 +79,10 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
             </div>
 
             <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tenure (Months)</label>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                Tenure
+                <Tooltip text="The total duration of the loan in months." />
+            </label>
             <div className="relative rounded-md shadow-sm">
                 <input
                 type="number"
@@ -78,7 +97,10 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+          <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+            Start Date
+            <Tooltip text="The date when the loan is disbursed. The first installment is usually due one month after this date." />
+          </label>
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Calendar className="h-4 w-4 text-gray-400" />
@@ -94,7 +116,10 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Holiday Adjustment</label>
+          <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+            Holiday Adjustment
+            <Tooltip text="Determines how payment dates are shifted if they fall on a holiday defined in the Events panel. 'Next Business Day' moves forward, 'Previous' moves backward." />
+          </label>
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Settings2 className="h-4 w-4 text-gray-400" />
@@ -112,7 +137,10 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Recalculation Strategy</label>
+          <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+            Recalculation Strategy
+            <Tooltip text="Defines behavior when Rate Changes or Extra Repayments occur. 'Variable Installment' changes the monthly payment amount to keep the tenure fixed. 'Variable Tenure' keeps the payment amount fixed, shortening or extending the loan duration." />
+          </label>
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <SlidersHorizontal className="h-4 w-4 text-gray-400" />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Holiday, RateRange, RepaymentEvent } from '../types';
-import { Trash2, CalendarOff, TrendingUp, ArrowRight, DollarSign, Coins } from 'lucide-react';
+import { Trash2, CalendarOff, TrendingUp, ArrowRight, DollarSign, Coins, Info } from 'lucide-react';
 
 interface Props {
   holidays: Holiday[];
@@ -10,6 +10,16 @@ interface Props {
   repayments: RepaymentEvent[];
   setRepayments: React.Dispatch<React.SetStateAction<RepaymentEvent[]>>;
 }
+
+const Tooltip: React.FC<{ text: string }> = ({ text }) => (
+  <div className="group relative inline-flex items-center ml-2">
+    <Info className="w-4 h-4 text-gray-400 hover:text-blue-500 cursor-help transition-colors" />
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-center pointer-events-none leading-relaxed">
+      {text}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+    </div>
+  </div>
+);
 
 export const EventsPanel: React.FC<Props> = ({ 
   holidays, 
@@ -82,9 +92,10 @@ export const EventsPanel: React.FC<Props> = ({
     <div className="space-y-6">
       {/* Holidays Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-4 text-rose-700">
-          <CalendarOff className="w-5 h-5" />
+        <div className="flex items-center mb-4 text-rose-700">
+          <CalendarOff className="w-5 h-5 mr-2" />
           <h3 className="font-bold text-lg">Holiday Intervals</h3>
+          <Tooltip text="Specify date ranges when the bank is closed (e.g., National Holidays). Payments falling on these dates will be shifted to the nearest business day according to your Global Configuration." />
         </div>
         
         <div className="grid grid-cols-1 gap-2 mb-4">
@@ -138,9 +149,10 @@ export const EventsPanel: React.FC<Props> = ({
 
       {/* Floating Rates Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-4 text-indigo-700">
-          <TrendingUp className="w-5 h-5" />
+        <div className="flex items-center mb-4 text-indigo-700">
+          <TrendingUp className="w-5 h-5 mr-2" />
           <h3 className="font-bold text-lg">Interest Rate Intervals</h3>
+          <Tooltip text="Define periods where the interest rate changes. The schedule will recalculate daily interest. If 'Variable Installment' is active, the monthly payment will change for the remaining tenure." />
         </div>
         
         <div className="grid grid-cols-1 gap-2 mb-4">
@@ -195,9 +207,10 @@ export const EventsPanel: React.FC<Props> = ({
 
       {/* Extra Repayments Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-4 text-emerald-700">
-          <Coins className="w-5 h-5" />
+        <div className="flex items-center mb-4 text-emerald-700">
+          <Coins className="w-5 h-5 mr-2" />
           <h3 className="font-bold text-lg">Extra Repayments</h3>
+          <Tooltip text="Add lump sum payments that reduce the principal immediately. Depending on your Strategy, this will either reduce your future monthly payments or shorten the loan tenure." />
         </div>
         
         <div className="flex gap-2 mb-4">
