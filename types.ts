@@ -17,7 +17,7 @@ export interface Holiday {
 export interface RateRange {
   id: string;
   startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
+  endDate?: string;  // YYYY-MM-DD, Optional. If missing, defaults to day before next interval or loan end.
   rate: number;      // Percentage
 }
 

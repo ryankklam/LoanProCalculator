@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Installment } from '../types';
 import { formatCurrency, formatDate, formatPercent } from '../utils';
-import { Eye, EyeOff, Layers, Banknote } from 'lucide-react';
+import { Layers, Banknote } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface Props {
@@ -120,10 +120,11 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
                 </td>
 
                 <td className="px-4 py-3 text-right">
-                  {!isSegment && !isRepayment && (
-                     <span className="bg-gray-100 px-2 py-1 rounded text-xs">{formatPercent(row.effectiveRate)}</span>
+                  {!isRepayment && (
+                     <span className={`px-2 py-1 rounded text-xs ${isSegment ? 'bg-orange-50 text-orange-700 font-medium' : 'bg-gray-100'}`}>
+                        {formatPercent(row.effectiveRate)}
+                     </span>
                   )}
-                  {isSegment && '-'}
                 </td>
 
                 <td className="px-4 py-3 text-right font-medium">

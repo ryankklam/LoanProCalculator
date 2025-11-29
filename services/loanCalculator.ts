@@ -44,14 +44,60 @@ const getPreviousBusinessDay = (date: Date, holidays: Holiday[]): Date => {
 
 // Helper to get rate for a specific day based on ranges
 const getRateForDay = (date: Date, initialRate: number, rateRanges: RateRange[]): number => {
-  // Find a range that covers the current date
-  const activeRange = rateRanges.find(r => {
-    const start = startOfDay(parseISO(r.startDate));
-    const end = endOfDay(parseISO(r.endDate));
-    return isWithinInterval(date, { start, end });
+  // Sort ranges by start date to process chronologically
+  const sortedRanges = [...rateRanges].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  
+  // Find valid candidates
+  const candidates = sortedRanges.map((range, index) => {
+      // Determine effective End Date
+      let effectiveEndDate: Date | null = null;
+      
+      if (range.endDate) {
+          effectiveEndDate = endOfDay(parseISO(range.endDate));
+      } else {
+          // If no explicit end date, it ends the day before the NEXT range starts.
+          // Note: The next range acts as a cutoff regardless of whether it has an end date or not.
+          if (index < sortedRanges.length - 1) {
+              const nextRangeStart = parseISO(sortedRanges[index + 1].startDate);
+              // effectiveEndDate is day before next start
+              effectiveEndDate = endOfDay(addDays(nextRangeStart, -1));
+          } else {
+              // Last range with no end date -> goes on forever
+              effectiveEndDate = null; 
+          }
+      }
+
+      return {
+          ...range,
+          effectiveEndDate
+      };
   });
 
-  return activeRange ? activeRange.rate : initialRate;
+  // Find the candidate that actually covers the requested date
+  // Since we processed chronologically and defined effectiveEndDate based on the next one, 
+  // they shouldn't overlap in a way that causes ambiguity for "implicit" ranges.
+  
+  // We prioritize the range with the latest start date that covers the target date.
+  const matchingRanges = candidates.filter(r => {
+      const start = startOfDay(parseISO(r.startDate));
+      
+      // Check start condition
+      if (isAfter(start, date) && !isSameDay(start, date)) return false;
+
+      // Check end condition
+      if (r.effectiveEndDate) {
+          if (isAfter(date, r.effectiveEndDate) && !isSameDay(date, r.effectiveEndDate)) return false;
+      }
+      
+      return true;
+  });
+
+  if (matchingRanges.length > 0) {
+      // Return the one with the latest start date
+      return matchingRanges[matchingRanges.length - 1].rate;
+  }
+
+  return initialRate;
 };
 
 // Helper to calculate PMT (Annuity Payment)
@@ -117,7 +163,7 @@ export const calculateSchedule = (
       notes.push(`${shiftDir} ${t.noteFrom} ${formattedNominal} (${t.noteHoliday})`);
     }
 
-    // --- Rate Change Check ---
+    // --- Rate Change Check for PMT Recalculation (Start of Period) ---
     const rateAtPeriodStart = getRateForDay(previousDate, initialRate, rateRanges);
     
     if (Math.abs(rateAtPeriodStart - currentRateForPMT) > 0.001) {
@@ -136,26 +182,60 @@ export const calculateSchedule = (
     // --- Daily Interest & Repayment Loop ---
     let interestForPeriod = 0;
     let accumulatedBalanceForRate = 0;
+    
+    // Segment Tracking
     let segmentInterest = 0;
     let lastEventDate = previousDate;
+    let segmentDaysCounter = 0; // Explicit counter to avoid date math confusion on boundaries
+    // We track the rate used for the current accumulating segment
+    let activeSegmentRate = getRateForDay(addDays(previousDate, 1), initialRate, rateRanges);
 
     for (let d = 1; d <= daysCount; d++) {
         const calculationDay = addDays(previousDate, d);
         const dailyRatePercent = getRateForDay(calculationDay, initialRate, rateRanges);
         
+        // 1. Check for Rate Change compared to active segment
+        if (Math.abs(dailyRatePercent - activeSegmentRate) > 0.0001) {
+             // Close the previous segment
+             if (segmentDaysCounter > 0) {
+                 schedule.push({
+                    type: 'SEGMENT',
+                    period: i,
+                    nominalDate: format(calculationDay, 'yyyy-MM-dd'),
+                    actualDate: format(calculationDay, 'yyyy-MM-dd'),
+                    // Visual Start: Last Event Date. Visual End: Rate Change Date (Today).
+                    segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
+                    segmentEndDate: format(calculationDay, 'yyyy-MM-dd'),
+                    daysCount: segmentDaysCounter,
+                    principal: 0,
+                    interest: segmentInterest,
+                    total: 0,
+                    outstandingBalance: currentBalance,
+                    effectiveRate: activeSegmentRate,
+                    notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
+                });
+             }
+             
+             // Reset for new segment
+             lastEventDate = calculationDay;
+             segmentInterest = 0;
+             segmentDaysCounter = 0;
+             activeSegmentRate = dailyRatePercent;
+        }
+
         const dailyInterest = currentBalance * (dailyRatePercent / 100) / 365;
         interestForPeriod += dailyInterest;
         segmentInterest += dailyInterest;
         accumulatedBalanceForRate += currentBalance;
+        segmentDaysCounter++;
 
-        // Check for Extra Repayment
+        // 2. Check for Extra Repayment
         const dailyRepayments = repayments.filter(r => isSameDay(parseISO(r.date), calculationDay));
         
         if (dailyRepayments.length > 0) {
             for(const r of dailyRepayments) {
-                // 1. Segment before repayment
-                const segmentDays = differenceInDays(calculationDay, lastEventDate);
-                if (segmentDays > 0) {
+                // Segment before repayment (ending ON calculationDay)
+                if (segmentDaysCounter > 0) {
                     schedule.push({
                         type: 'SEGMENT',
                         period: i,
@@ -163,21 +243,21 @@ export const calculateSchedule = (
                         actualDate: format(calculationDay, 'yyyy-MM-dd'),
                         segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
                         segmentEndDate: format(calculationDay, 'yyyy-MM-dd'),
-                        daysCount: segmentDays, 
+                        daysCount: segmentDaysCounter, 
                         principal: 0,
                         interest: segmentInterest, 
                         total: 0,
                         outstandingBalance: currentBalance, 
-                        effectiveRate: 0,
+                        effectiveRate: activeSegmentRate,
                         notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
                     });
                 }
                 
-                // 2. Apply Repayment
+                // Apply Repayment
                 currentBalance -= r.amount;
                 if(currentBalance < 0) currentBalance = 0;
 
-                // 3. Log Repayment Row
+                // Log Repayment Row
                 schedule.push({
                   type: 'REPAYMENT',
                   period: i,
@@ -194,8 +274,11 @@ export const calculateSchedule = (
                 
                 lastEventDate = calculationDay;
                 segmentInterest = 0;
+                segmentDaysCounter = 0;
+                // activeSegmentRate stays the same (dailyRatePercent) for this day, 
+                // but next loop iteration might change it if tomorrow's rate is different.
 
-                // 4. Recalculate PMT based on Strategy
+                // Recalculate PMT based on Strategy
                 currentRateForPMT = dailyRatePercent; 
                 
                 if (adjustmentStrategy === 'CHANGE_INSTALLMENT') {
@@ -206,9 +289,8 @@ export const calculateSchedule = (
         }
     }
 
-    // Final Segment
-    const finalSegmentDays = differenceInDays(actualDate, lastEventDate);
-    if (finalSegmentDays > 0) {
+    // Final Segment of the period
+    if (segmentDaysCounter > 0) {
          schedule.push({
             type: 'SEGMENT',
             period: i,
@@ -216,12 +298,12 @@ export const calculateSchedule = (
             actualDate: format(actualDate, 'yyyy-MM-dd'),
             segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
             segmentEndDate: format(actualDate, 'yyyy-MM-dd'),
-            daysCount: finalSegmentDays, 
+            daysCount: segmentDaysCounter, 
             principal: 0,
             interest: segmentInterest, 
             total: 0,
             outstandingBalance: currentBalance,
-            effectiveRate: 0,
+            effectiveRate: activeSegmentRate,
             notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
         });
     }

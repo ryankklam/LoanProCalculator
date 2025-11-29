@@ -56,15 +56,15 @@ export const EventsPanel: React.FC<Props> = ({
   };
 
   const addRateRange = () => {
-    if (newRate.startDate && newRate.endDate && newRate.rate) {
-       if (newRate.startDate > newRate.endDate) {
+    if (newRate.startDate && newRate.rate) {
+       if (newRate.endDate && newRate.startDate > newRate.endDate) {
           alert("Start date must be before or equal to End date");
           return;
       }
       setRateRanges(prev => [...prev, { 
         id: Date.now().toString(), 
         startDate: newRate.startDate,
-        endDate: newRate.endDate, 
+        endDate: newRate.endDate || undefined, // Allow empty string to be undefined
         rate: parseFloat(newRate.rate) 
       }]);
       setNewRate({ startDate: '', endDate: '', rate: '' });
@@ -169,6 +169,7 @@ export const EventsPanel: React.FC<Props> = ({
                 <input
                     type="date"
                     className="border rounded px-3 py-1.5 text-sm flex-1"
+                    placeholder="Optional End"
                     value={newRate.endDate}
                     onChange={(e) => setNewRate({ ...newRate, endDate: e.target.value })}
                 />
@@ -197,7 +198,7 @@ export const EventsPanel: React.FC<Props> = ({
             <div key={r.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
               <div className="flex flex-col">
                  <span className="font-bold text-indigo-600">{r.rate}%</span>
-                 <span className="text-xs text-gray-500">{r.startDate} to {r.endDate}</span>
+                 <span className="text-xs text-gray-500">{r.startDate} to {r.endDate || 'Next/End'}</span>
               </div>
               <button onClick={() => removeRateRange(r.id)} className="text-gray-400 hover:text-red-500">
                 <Trash2 className="w-4 h-4" />
