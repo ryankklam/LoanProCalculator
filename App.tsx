@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { EventsPanel } from './components/EventsPanel';
 import { ScheduleTable } from './components/ScheduleTable';
@@ -6,9 +6,12 @@ import { SummaryChart } from './components/SummaryChart';
 import { calculateSchedule } from './services/loanCalculator';
 import { LoanParams, Holiday, RateRange, RepaymentEvent } from './types';
 import { formatCurrency } from './utils';
-import { LayoutDashboard, Wallet, PiggyBank, RefreshCw, Download } from 'lucide-react';
+import { LayoutDashboard, Wallet, PiggyBank, RefreshCw, Download, Languages } from 'lucide-react';
+import { useLanguage } from './contexts/LanguageContext';
 
 const App: React.FC = () => {
+  const { language, setLanguage, t, locale } = useLanguage();
+
   // Initial State
   const [params, setParams] = useState<LoanParams>({
     amount: 100000,
@@ -24,13 +27,17 @@ const App: React.FC = () => {
   const [repayments, setRepayments] = useState<RepaymentEvent[]>([]);
 
   // State for calculation results (Manual Trigger)
-  // Initialize with the calculation based on default params
   const [calculationResult, setCalculationResult] = useState(() => 
-    calculateSchedule(params, [], [], [])
+    calculateSchedule(params, [], [], [], language)
   );
 
+  // Recalculate when language changes so notes update
+  useEffect(() => {
+    handleCalculate();
+  }, [language]);
+
   const handleCalculate = () => {
-    const result = calculateSchedule(params, holidays, rateRanges, repayments);
+    const result = calculateSchedule(params, holidays, rateRanges, repayments, language);
     setCalculationResult(result);
   };
 
@@ -40,17 +47,17 @@ const App: React.FC = () => {
     if (!schedule || schedule.length === 0) return;
 
     const headers = [
-      "Type",
-      "Period",
-      "Date",
-      "End Date",
-      "Days",
-      "Effective Rate (%)",
-      "Principal / Basis",
-      "Interest",
-      "Total Payment",
-      "Balance",
-      "Notes"
+      t.csvType,
+      t.csvPeriod,
+      t.csvDate,
+      t.csvEndDate,
+      t.csvDays,
+      t.csvEffRate,
+      t.csvPrincipal,
+      t.csvInterest,
+      t.csvTotal,
+      t.csvBalance,
+      t.csvNotes
     ];
 
     const rows = schedule.map(row => {
@@ -82,7 +89,9 @@ const App: React.FC = () => {
       ...rows.map(row => row.join(','))
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Add BOM for Excel Chinese character support
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
@@ -94,6 +103,10 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'cn' : 'en');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* Header */}
@@ -101,10 +114,20 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 text-blue-900">
             <LayoutDashboard className="w-6 h-6" />
-            <h1 className="text-xl font-bold tracking-tight">LoanPro <span className="font-light text-blue-600">Calculator</span></h1>
+            <h1 className="text-xl font-bold tracking-tight">{t.appTitle} <span className="font-light text-blue-600">{t.appSubtitle}</span></h1>
           </div>
-          <div className="text-sm text-gray-500">
-            Straight Line Method • Actual/365
+          <div className="flex items-center gap-6">
+            <div className="text-sm text-gray-500 hidden sm:block">
+              {t.methodology}
+            </div>
+            <button 
+                onClick={toggleLanguage}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
+                title={t.toggleLang}
+            >
+                <Languages className="w-4 h-4" />
+                {language === 'en' ? 'CN' : 'EN'}
+            </button>
           </div>
         </div>
       </header>
@@ -113,7 +136,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left Sidebar: Controls */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-5">
             <ConfigurationPanel params={params} onChange={setParams} />
             <EventsPanel 
               holidays={holidays} 
@@ -130,12 +153,12 @@ const App: React.FC = () => {
               className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-blue-200 transition-all transform hover:scale-[1.02] active:scale-95"
             >
               <RefreshCw className="w-5 h-5" />
-              Generate Repayment Plan
+              {t.generatePlan}
             </button>
           </div>
 
           {/* Right Content: Summary & Table */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-5">
             
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -144,7 +167,7 @@ const App: React.FC = () => {
                     <div className="p-2 bg-green-100 rounded-lg text-green-700">
                         <Wallet className="w-5 h-5" />
                     </div>
-                    <p className="text-sm font-medium text-gray-500">Total Repayment</p>
+                    <p className="text-sm font-medium text-gray-500">{t.totalRepayment}</p>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalPaid)}</p>
               </div>
@@ -154,7 +177,7 @@ const App: React.FC = () => {
                     <div className="p-2 bg-red-100 rounded-lg text-red-700">
                         <PiggyBank className="w-5 h-5" />
                     </div>
-                    <p className="text-sm font-medium text-gray-500">Total Interest</p>
+                    <p className="text-sm font-medium text-gray-500">{t.totalInterest}</p>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalInterest)}</p>
               </div>
@@ -164,29 +187,31 @@ const App: React.FC = () => {
                     <div className="p-2 bg-blue-100 rounded-lg text-blue-700">
                         <LayoutDashboard className="w-5 h-5" />
                     </div>
-                    <p className="text-sm font-medium text-gray-500">Last Payment</p>
+                    <p className="text-sm font-medium text-gray-500">{t.lastPayment}</p>
                 </div>
-                <p className="text-lg font-bold text-gray-900">{summary.lastPaymentDate ? new Date(summary.lastPaymentDate).toLocaleDateString() : '-'}</p>
+                <p className="text-lg font-bold text-gray-900">{summary.lastPaymentDate ? new Date(summary.lastPaymentDate).toLocaleDateString(locale) : '-'}</p>
               </div>
             </div>
 
             {/* Chart */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h3 className="font-bold text-gray-800 mb-4">Balance Projection</h3>
-                <SummaryChart data={schedule.filter(s => s.type !== 'SEGMENT')} />
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                <SummaryChart 
+                    data={schedule.filter(s => s.type !== 'SEGMENT')} 
+                    title={t.scheduleProjection}
+                />
             </div>
 
             {/* Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-800">Repayment Schedule</h3>
+                <div className="p-5 border-b border-gray-200 flex justify-between items-center">
+                    <h3 className="font-bold text-gray-800">{t.repaymentSchedule}</h3>
                     <div className="flex gap-2">
                         <button
                           onClick={handleExportCSV}
                           className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200"
                         >
                           <Download className="w-4 h-4" />
-                          CSV
+                          {t.exportCsv}
                         </button>
                     </div>
                 </div>

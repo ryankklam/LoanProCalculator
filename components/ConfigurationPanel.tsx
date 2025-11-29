@@ -1,6 +1,7 @@
 import React from 'react';
 import { LoanParams } from '../types';
 import { Calculator, Calendar, DollarSign, Percent, Settings2, SlidersHorizontal, Info } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Props {
   params: LoanParams;
@@ -18,6 +19,8 @@ const Tooltip: React.FC<{ text: string }> = ({ text }) => (
 );
 
 export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
+  const { t } = useLanguage();
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     onChange({
@@ -32,14 +35,14 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
       <div className="flex items-center gap-2 mb-6 text-blue-800">
         <Calculator className="w-6 h-6" />
-        <h2 className="text-xl font-bold">Loan Details</h2>
+        <h2 className="text-xl font-bold">{t.loanDetails}</h2>
       </div>
 
       <div className="space-y-4">
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-            Loan Amount
-            <Tooltip text="The total principal amount borrowed from the bank." />
+            {t.loanAmount}
+            <Tooltip text={t.loanAmountTooltip} />
           </label>
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -59,8 +62,8 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
         <div className="grid grid-cols-2 gap-4">
             <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-                Rate (%)
-                <Tooltip text="The annual nominal interest rate used for daily interest calculation (Actual/365)." />
+                {t.rate}
+                <Tooltip text={t.rateTooltip} />
             </label>
             <div className="relative rounded-md shadow-sm">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -80,8 +83,8 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
 
             <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-                Tenure
-                <Tooltip text="The total duration of the loan in months." />
+                {t.tenure}
+                <Tooltip text={t.tenureTooltip} />
             </label>
             <div className="relative rounded-md shadow-sm">
                 <input
@@ -98,8 +101,8 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
 
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-            Start Date
-            <Tooltip text="The date when the loan is disbursed. The first installment is usually due one month after this date." />
+            {t.startDate}
+            <Tooltip text={t.startDateTooltip} />
           </label>
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -117,8 +120,8 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
 
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-            Holiday Adjustment
-            <Tooltip text="Determines how payment dates are shifted if they fall on a holiday defined in the Events panel. 'Next Business Day' moves forward, 'Previous' moves backward." />
+            {t.holidayAdjustment}
+            <Tooltip text={t.holidayAdjustmentTooltip} />
           </label>
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -130,16 +133,16 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
               onChange={handleChange}
               className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm bg-white"
             >
-                <option value="AFTER">Next Business Day (后顺)</option>
-                <option value="BEFORE">Previous Business Day (前顺)</option>
+                <option value="AFTER">{t.nextBusinessDay}</option>
+                <option value="BEFORE">{t.prevBusinessDay}</option>
             </select>
           </div>
         </div>
 
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-            Recalculation Strategy
-            <Tooltip text="Defines behavior when Rate Changes or Extra Repayments occur. 'Variable Installment' changes the monthly payment amount to keep the tenure fixed. 'Variable Tenure' keeps the payment amount fixed, shortening or extending the loan duration." />
+            {t.recalculationStrategy}
+            <Tooltip text={t.recalculationStrategyTooltip} />
           </label>
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -151,14 +154,14 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
               onChange={handleChange}
               className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm bg-white"
             >
-                <option value="CHANGE_INSTALLMENT">Variable Installment (变额不变期)</option>
-                <option value="CHANGE_TENURE">Variable Tenure (变期不变额)</option>
+                <option value="CHANGE_INSTALLMENT">{t.varInstallment}</option>
+                <option value="CHANGE_TENURE">{t.varTenure}</option>
             </select>
           </div>
           <p className="mt-1 text-xs text-gray-500">
             {params.adjustmentStrategy === 'CHANGE_INSTALLMENT' 
-                ? "Keeps the end date fixed. Monthly payment changes."
-                : "Keeps monthly payment fixed. End date changes."}
+                ? t.varInstallmentDesc
+                : t.varTenureDesc}
           </p>
         </div>
 

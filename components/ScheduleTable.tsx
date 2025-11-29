@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Installment } from '../types';
 import { formatCurrency, formatDate, formatPercent } from '../utils';
 import { Eye, EyeOff, Layers, Banknote } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Props {
   schedule: Installment[];
 }
 
 export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
+  const { t, locale } = useLanguage();
   // Separate visibility controls
   const [showRepayments, setShowRepayments] = useState(true);
   const [showSegments, setShowSegments] = useState(false);
@@ -18,7 +20,7 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
     const s = new Date(start);
     const e = new Date(end);
     const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    return `${new Intl.DateTimeFormat('en-US', opts).format(s)} - ${new Intl.DateTimeFormat('en-US', opts).format(e)}`;
+    return `${new Intl.DateTimeFormat(locale, opts).format(s)} - ${new Intl.DateTimeFormat(locale, opts).format(e)}`;
   };
 
   const visibleSchedule = schedule.filter(row => {
@@ -40,7 +42,7 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
           }`}
         >
           <Banknote className="w-3 h-3" />
-          {showRepayments ? 'Hide Repayments' : 'Show Repayments'}
+          {showRepayments ? t.hideRepayments : t.showRepayments}
         </button>
 
         <button 
@@ -52,21 +54,21 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
           }`}
         >
           <Layers className="w-3 h-3" />
-          {showSegments ? 'Hide Breakdown' : 'Show Breakdown'}
+          {showSegments ? t.hideBreakdown : t.showBreakdown}
         </button>
       </div>
 
       <table className="min-w-full divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider w-12">#</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th className="px-4 py-3 text-center font-medium text-gray-500 uppercase tracking-wider w-16">Days</th>
-            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Eff. Rate</th>
-            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Principal</th>
-            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Interest</th>
-            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Total</th>
-            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+            <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider w-12">{t.colPeriod}</th>
+            <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">{t.colDate}</th>
+            <th className="px-4 py-3 text-center font-medium text-gray-500 uppercase tracking-wider w-16">{t.colDays}</th>
+            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">{t.colEffRate}</th>
+            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">{t.colPrincipal}</th>
+            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">{t.colInterest}</th>
+            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">{t.colTotal}</th>
+            <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">{t.colBalance}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -98,7 +100,7 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
                   ) : (
                     <>
                         <div className={`font-medium ${isRepayment ? 'text-emerald-700' : 'text-gray-900'}`}>
-                            {formatDate(row.actualDate)}
+                            {formatDate(row.actualDate, locale)}
                         </div>
                         {row.notes.map((note, i) => (
                             <div key={i} className={`text-xs mt-0.5 ${isRepayment ? 'text-emerald-600 italic' : 'text-orange-600'}`}>
@@ -108,7 +110,7 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
                     </>
                   )}
                   {!isRepayment && !isSegment && row.nominalDate !== row.actualDate && row.notes.length === 0 && (
-                      <div className="text-xs text-gray-400">Orig: {formatDate(row.nominalDate)}</div>
+                      <div className="text-xs text-gray-400">{t.colOrig}: {formatDate(row.nominalDate, locale)}</div>
                   )}
                 </td>
 

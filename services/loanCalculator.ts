@@ -1,5 +1,6 @@
 import { LoanParams, Holiday, RateRange, Installment, Summary, RepaymentEvent } from '../types';
 import { addMonths, addDays, differenceInDays, isSameDay, isAfter, format, endOfDay, isWithinInterval } from 'date-fns';
+import { dictionary, Language } from '../translations';
 
 // Local implementations for functions missing in the installed date-fns version
 const parseISO = (dateStr: string): Date => {
@@ -66,9 +67,12 @@ export const calculateSchedule = (
   params: LoanParams,
   holidays: Holiday[],
   rateRanges: RateRange[],
-  repayments: RepaymentEvent[]
+  repayments: RepaymentEvent[],
+  language: Language = 'en'
 ): { schedule: Installment[]; summary: Summary } => {
   const { amount, initialRate, tenureMonths, startDate, holidayShiftMode, adjustmentStrategy } = params;
+  const t = dictionary[language];
+  const dateLocale = language === 'cn' ? 'yyyy-MM-dd' : 'MMM d';
   
   const schedule: Installment[] = [];
   const startObj = parseISO(startDate);
@@ -82,17 +86,13 @@ export const calculateSchedule = (
   let currentRateForPMT = getRateForDay(startObj, initialRate, rateRanges);
   let currentPMT = calculatePMT(amount, currentRateForPMT, tenureMonths);
   
-  // Store the "Base" PMT. If strategy is CHANGE_TENURE, we try to stick to this amount.
-  // Note: If rate changes significantly, currentPMT might need to be at least interest? 
-  // For now, we assume strict Fixed Installment unless it's less than interest (negative amortization check).
   let fixedInstallmentTarget = currentPMT;
 
-  // Safety Cap for CHANGE_TENURE to prevent infinite loops (50 years)
+  // Safety Cap for CHANGE_TENURE
   const MAX_ITERATIONS = 600; 
 
   let i = 1;
   
-  // Loop continues as long as there is balance, but respects tenure if CHANGE_INSTALLMENT
   while (currentBalance > 0.005 && i <= MAX_ITERATIONS) {
     const nominalDate = addMonths(startObj, i);
     let actualDate: Date;
@@ -112,8 +112,9 @@ export const calculateSchedule = (
     const notes: string[] = [];
 
     if (!isSameDay(nominalDate, actualDate)) {
-      const shiftDir = isAfter(actualDate, nominalDate) ? 'Deferred' : 'Preponed';
-      notes.push(`${shiftDir} from ${format(nominalDate, 'MMM d')} (Holiday)`);
+      const shiftDir = isAfter(actualDate, nominalDate) ? t.noteDeferred : t.notePreponed;
+      const formattedNominal = format(nominalDate, dateLocale);
+      notes.push(`${shiftDir} ${t.noteFrom} ${formattedNominal} (${t.noteHoliday})`);
     }
 
     // --- Rate Change Check ---
@@ -125,13 +126,10 @@ export const calculateSchedule = (
         if (adjustmentStrategy === 'CHANGE_INSTALLMENT') {
             const remainingMonths = Math.max(1, tenureMonths - (i - 1));
             currentPMT = calculatePMT(currentBalance, currentRateForPMT, remainingMonths);
-            notes.push(`Rate changed to ${currentRateForPMT}% - PMT Recalculated`);
+            notes.push(`${t.noteRateChanged} ${currentRateForPMT}% - ${t.notePmtRecalculated}`);
         } else {
-            // CHANGE_TENURE: Rate changed, but we keep PMT same (Fixed Installment).
-            // Unless the fixed installment is less than interest, which would increase balance.
-            // For this app, we stick to the fixed target.
             currentPMT = fixedInstallmentTarget;
-            notes.push(`Rate changed to ${currentRateForPMT}% - PMT Fixed`);
+            notes.push(`${t.noteRateChanged} ${currentRateForPMT}% - ${t.notePmtFixed}`);
         }
     }
 
@@ -171,7 +169,7 @@ export const calculateSchedule = (
                         total: 0,
                         outstandingBalance: currentBalance, 
                         effectiveRate: 0,
-                        notes: [`Basis: $${currentBalance.toFixed(2)}`]
+                        notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
                     });
                 }
                 
@@ -191,7 +189,7 @@ export const calculateSchedule = (
                   total: r.amount,
                   outstandingBalance: currentBalance,
                   effectiveRate: 0,
-                  notes: [`Extra Repayment`]
+                  notes: [t.noteExtraRepayment]
                 });
                 
                 lastEventDate = calculationDay;
@@ -203,13 +201,6 @@ export const calculateSchedule = (
                 if (adjustmentStrategy === 'CHANGE_INSTALLMENT') {
                     const remainingMonths = Math.max(1, tenureMonths - (i - 1));
                     currentPMT = calculatePMT(currentBalance, currentRateForPMT, remainingMonths);
-                    // Update fixed target just in case user switches modes later (though not possible in 1 session usually)
-                    // fixedInstallmentTarget = currentPMT; 
-                } else {
-                    // CHANGE_TENURE:
-                    // Principal dropped, so balance drops. Interest drops.
-                    // Fixed PMT means more principal paid next time -> Tenure shortens naturally.
-                    // Do NOT update currentPMT.
                 }
             }
         }
@@ -231,7 +222,7 @@ export const calculateSchedule = (
             total: 0,
             outstandingBalance: currentBalance,
             effectiveRate: 0,
-            notes: [`Basis: $${currentBalance.toFixed(2)}`]
+            notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
         });
     }
 
@@ -246,10 +237,6 @@ export const calculateSchedule = (
     let principalPayment = 0;
     let totalPayment = currentPMT;
 
-    // Termination Check
-    // 1. Balance is effectively zero (or covered by payment)
-    // 2. CHANGE_INSTALLMENT mode reached tenure limit (force close to avoid rounding dust)
-    
     const canPayOff = (currentBalance + interestForPeriod) <= totalPayment;
     const isForcedEnd = (adjustmentStrategy === 'CHANGE_INSTALLMENT' && i === tenureMonths);
 
@@ -260,10 +247,6 @@ export const calculateSchedule = (
         principalPayment = totalPayment - interestForPeriod;
     }
 
-    // Prevent negative principal payment if Interest > Fixed Payment (Negative Amortization)
-    // In a real bank, this adds to balance. Here, we'll allow it but balance grows.
-    // If principalPayment < 0, balance increases. Loop handles it.
-
     currentBalance -= principalPayment;
     if (currentBalance < 0.01) currentBalance = 0;
     
@@ -271,9 +254,9 @@ export const calculateSchedule = (
 
     // Check if we extended tenure
     if (adjustmentStrategy === 'CHANGE_TENURE' && i > tenureMonths) {
-        notes.push('Tenure Extended');
+        notes.push(t.noteTenureExtended);
     } else if (adjustmentStrategy === 'CHANGE_TENURE' && canPayOff && i < tenureMonths) {
-        notes.push('Paid Off Early');
+        notes.push(t.notePaidOffEarly);
     }
 
     schedule.push({
