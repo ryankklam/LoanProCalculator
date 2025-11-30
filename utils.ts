@@ -15,10 +15,10 @@ export const formatPercent = (value: number) => {
   }).format(value / 100);
 };
 
-export const formatDate = (dateStr: string) => {
+export const formatDate = (dateStr: string, locale: string = 'en-US') => {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
