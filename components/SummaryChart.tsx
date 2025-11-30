@@ -1,148 +1,211 @@
 import React, { useMemo, useState } from 'react';
-import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { 
+  ComposedChart, 
+  Line, 
+  Bar, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  Legend 
+} from 'recharts';
 import { Installment } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Eye, EyeOff } from 'lucide-react';
+import { BarChart3, TrendingUp } from 'lucide-react';
+import { formatCurrency } from '../utils';
 
 interface Props {
   data: Installment[];
   title: string;
 }
 
+type ChartMode = 'monthly' | 'cumulative';
+
 export const SummaryChart: React.FC<Props> = ({ data, title }) => {
   const { t, locale } = useLanguage();
-  const [visibility, setVisibility] = useState({
-    balance: true,
-    repayment: true,
-    interest: true
-  });
+  const [mode, setMode] = useState<ChartMode>('monthly');
 
+  // Filter out SEGMENTs for the chart to avoid clutter. 
+  // We only want to see the aggregate result per period (INSTALLMENT) or specific REPAYMENT events.
   const chartData = useMemo(() => {
     let accInterest = 0;
-    let accPaid = 0;
-    return data.map(d => {
+    let accPrincipal = 0;
+    
+    // Filter to get only the rows that represent a payment event
+    const relevantRows = data.filter(d => d.type === 'INSTALLMENT' || d.type === 'REPAYMENT');
+
+    return relevantRows.map(d => {
       accInterest += d.interest;
-      accPaid += d.total;
+      accPrincipal += d.principal; // Use principal paid
       return {
         ...d,
         accInterest,
-        accPaid
+        accPrincipal,
+        accTotal: accInterest + accPrincipal,
+        // Ensure strictly non-negative for charts
+        principal: d.principal < 0 ? 0 : d.principal,
+        interest: d.interest < 0 ? 0 : d.interest
       };
     });
   }, [data]);
 
-  const toggle = (key: keyof typeof visibility) => {
-    setVisibility(prev => ({ ...prev, [key]: !prev[key] }));
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const dateStr = new Date(label).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+      return (
+        <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-lg text-xs z-50">
+          <p className="font-bold text-gray-700 mb-2 border-b pb-1">{dateStr}</p>
+          {payload.map((p: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-4 mb-1">
+              <span className="flex items-center gap-1.5" style={{ color: p.color }}>
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }}></span>
+                {p.name}:
+              </span>
+              <span className="font-mono font-medium">
+                {formatCurrency(p.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
-
-  const ToggleButton = ({ active, onClick, color, label }: { active: boolean, onClick: () => void, color: string, label: string }) => (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all border ${
-        active 
-          ? `bg-${color}-50 text-${color}-700 border-${color}-200` 
-          : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-      }`}
-    >
-      <div className={`w-1.5 h-1.5 rounded-full ${active ? `bg-${color}-500` : 'bg-gray-300'}`} />
-      {label}
-      {active ? <Eye className="w-3 h-3 ml-0.5" /> : <EyeOff className="w-3 h-3 ml-0.5" />}
-    </button>
-  );
 
   return (
     <div className="flex flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <h3 className="font-bold text-gray-800">{title}</h3>
-        <div className="flex gap-2">
-            <ToggleButton 
-                active={visibility.balance} 
-                onClick={() => toggle('balance')} 
-                color="blue" 
-                label={t.colBalance} 
-            />
-            <ToggleButton 
-                active={visibility.repayment} 
-                onClick={() => toggle('repayment')} 
-                color="emerald" 
-                label={t.totalRepayment} 
-            />
-            <ToggleButton 
-                active={visibility.interest} 
-                onClick={() => toggle('interest')} 
-                color="red" 
-                label={t.totalInterest} 
-            />
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+            {title}
+        </h3>
+        
+        {/* Toggle Switch */}
+        <div className="bg-gray-100 p-1 rounded-lg flex items-center">
+            <button
+                onClick={() => setMode('monthly')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    mode === 'monthly' 
+                    ? 'bg-white text-blue-700 shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+                <BarChart3 className="w-3.5 h-3.5" />
+                {t.colTotal} ({t.colPeriod})
+            </button>
+            <button
+                onClick={() => setMode('cumulative')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    mode === 'cumulative' 
+                    ? 'bg-white text-blue-700 shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+                <TrendingUp className="w-3.5 h-3.5" />
+                {t.scheduleProjection} (Cumul.)
+            </button>
         </div>
       </div>
 
-      <div className="h-60 w-full">
+      <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={chartData}
-            margin={{
-              top: 5,
-              right: 20,
-              left: 0,
-              bottom: 0,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-            <XAxis 
-              dataKey="actualDate" 
-              tickFormatter={(date) => {
-                  const d = new Date(date);
-                  return `${d.getMonth() + 1}/${d.getFullYear().toString().substr(2)}`;
-              }}
-              tick={{fontSize: 11}}
-              minTickGap={30}
-              tickLine={false}
-              axisLine={{ stroke: '#e5e7eb' }}
-            />
-            <YAxis 
-              tickFormatter={(val) => `$${val/1000}k`} 
-              tick={{fontSize: 11}}
-              tickLine={false}
-              axisLine={false}
-            />
-            <Tooltip 
-              formatter={(value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)}
-              labelFormatter={(label) => new Date(label).toLocaleDateString(locale)}
-              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-            />
-            <Legend wrapperStyle={{ paddingTop: '5px', fontSize: '12px' }} />
-            
-            {visibility.balance && (
-              <Area 
+          {mode === 'monthly' ? (
+            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+              <XAxis 
+                dataKey="actualDate" 
+                tickFormatter={(date) => {
+                    const d = new Date(date);
+                    return `${d.getMonth() + 1}/${d.getFullYear().toString().substr(2)}`;
+                }}
+                tick={{fontSize: 10, fill: '#9ca3af'}}
+                minTickGap={30}
+                tickLine={false}
+                axisLine={{ stroke: '#e5e7eb' }}
+              />
+              {/* Left Y-Axis: Monthly Payments (Bars) */}
+              <YAxis 
+                yAxisId="left"
+                tickFormatter={(val) => `${(val/1000).toFixed(0)}k`} 
+                tick={{fontSize: 10, fill: '#9ca3af'}}
+                tickLine={false}
+                axisLine={false}
+                label={{ value: 'Payment ($)', angle: -90, position: 'insideLeft', style: {fontSize: 10, fill: '#9ca3af'} }}
+              />
+              {/* Right Y-Axis: Outstanding Balance (Line) */}
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                tickFormatter={(val) => `${(val/1000).toFixed(0)}k`} 
+                tick={{fontSize: 10, fill: '#9ca3af'}}
+                tickLine={false}
+                axisLine={false}
+                label={{ value: 'Balance ($)', angle: 90, position: 'insideRight', style: {fontSize: 10, fill: '#9ca3af'} }}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}/>
+              
+              {/* Stacked Bars for Principal vs Interest */}
+              <Bar yAxisId="left" dataKey="principal" stackId="a" name={t.colPrincipal} fill="#10b981" barSize={20} radius={[0, 0, 4, 4]} />
+              <Bar yAxisId="left" dataKey="interest" stackId="a" name={t.colInterest} fill="#ef4444" barSize={20} radius={[4, 4, 0, 0]} />
+              
+              {/* Line for Balance */}
+              <Line 
+                yAxisId="right" 
                 type="monotone" 
                 dataKey="outstandingBalance" 
-                stroke="#3b82f6" 
-                fill="#eff6ff" 
-                fillOpacity={0.6}
                 name={t.colBalance} 
+                stroke="#3b82f6" 
+                strokeWidth={3} 
+                dot={false}
+                activeDot={{ r: 6 }}
               />
-            )}
-            {visibility.repayment && (
-              <Line 
+            </ComposedChart>
+          ) : (
+            // Cumulative View (Area Chart)
+            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+               <XAxis 
+                dataKey="actualDate" 
+                tickFormatter={(date) => {
+                    const d = new Date(date);
+                    return `${d.getMonth() + 1}/${d.getFullYear().toString().substr(2)}`;
+                }}
+                tick={{fontSize: 10, fill: '#9ca3af'}}
+                minTickGap={30}
+                tickLine={false}
+                axisLine={{ stroke: '#e5e7eb' }}
+              />
+              <YAxis 
+                tickFormatter={(val) => `${(val/1000).toFixed(0)}k`} 
+                tick={{fontSize: 10, fill: '#9ca3af'}}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}/>
+
+              <Area 
                 type="monotone" 
-                dataKey="accPaid" 
+                dataKey="accPrincipal" 
+                stackId="1" 
                 stroke="#10b981" 
-                strokeWidth={2} 
-                dot={false} 
-                name={t.totalRepayment} 
+                fill="#10b981" 
+                fillOpacity={0.6} 
+                name={`Cumul. ${t.colPrincipal}`} 
               />
-            )}
-            {visibility.interest && (
-              <Line 
+              <Area 
                 type="monotone" 
                 dataKey="accInterest" 
+                stackId="1" 
                 stroke="#ef4444" 
-                strokeWidth={2} 
-                dot={false} 
-                name={t.totalInterest} 
+                fill="#ef4444" 
+                fillOpacity={0.6} 
+                name={`Cumul. ${t.colInterest}`} 
               />
-            )}
-          </ComposedChart>
+            </ComposedChart>
+          )}
         </ResponsiveContainer>
       </div>
     </div>

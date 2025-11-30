@@ -104,14 +104,16 @@ export const EventsPanel: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <input
                 type="date"
-                className="border rounded px-3 py-1.5 text-sm flex-1"
+                className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                style={{ colorScheme: 'light' }}
                 value={newHoliday.startDate}
                 onChange={(e) => setNewHoliday({ ...newHoliday, startDate: e.target.value })}
             />
             <ArrowRight className="w-4 h-4 text-gray-400" />
             <input
                 type="date"
-                className="border rounded px-3 py-1.5 text-sm flex-1"
+                className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                style={{ colorScheme: 'light' }}
                 value={newHoliday.endDate}
                 onChange={(e) => setNewHoliday({ ...newHoliday, endDate: e.target.value })}
             />
@@ -161,14 +163,16 @@ export const EventsPanel: React.FC<Props> = ({
              <div className="flex items-center gap-2">
                 <input
                     type="date"
-                    className="border rounded px-3 py-1.5 text-sm flex-1"
+                    className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                    style={{ colorScheme: 'light' }}
                     value={newRate.startDate}
                     onChange={(e) => setNewRate({ ...newRate, startDate: e.target.value })}
                 />
                 <ArrowRight className="w-4 h-4 text-gray-400" />
                 <input
                     type="date"
-                    className="border rounded px-3 py-1.5 text-sm flex-1"
+                    className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                    style={{ colorScheme: 'light' }}
                     placeholder="Optional End"
                     value={newRate.endDate}
                     onChange={(e) => setNewRate({ ...newRate, endDate: e.target.value })}
@@ -219,7 +223,8 @@ export const EventsPanel: React.FC<Props> = ({
         <div className="flex gap-2 mb-4">
             <input
                 type="date"
-                className="border rounded px-3 py-1.5 text-sm flex-1"
+                className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                style={{ colorScheme: 'light' }}
                 value={newRepayment.date}
                 onChange={(e) => setNewRepayment({ ...newRepayment, date: e.target.value })}
             />

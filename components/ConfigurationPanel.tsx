@@ -113,7 +113,8 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
               name="startDate"
               value={params.startDate}
               onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm"
+              className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm bg-white"
+              style={{ colorScheme: 'light' }}
             />
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Installment } from '../types';
 import { formatCurrency, formatDate, formatPercent } from '../utils';
-import { Layers, Banknote } from 'lucide-react';
+import { Layers, Banknote, CalendarSearch, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface Props {
@@ -13,6 +13,7 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
   // Separate visibility controls
   const [showRepayments, setShowRepayments] = useState(true);
   const [showSegments, setShowSegments] = useState(false);
+  const [filterDate, setFilterDate] = useState('');
 
   // Helper to format date ranges for segments
   const formatSegmentDate = (start?: string, end?: string) => {
@@ -24,38 +25,75 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
   };
 
   const visibleSchedule = schedule.filter(row => {
+    // 1. Check Date Filter (using string comparison for ISO YYYY-MM-DD)
+    if (filterDate && row.actualDate < filterDate) {
+        return false;
+    }
+
+    // 2. Check Type Toggles
     if (row.type === 'REPAYMENT') return showRepayments;
     if (row.type === 'SEGMENT') return showSegments;
-    return true; // Always show INSTALLMENT
+    
+    return true; // Always show INSTALLMENT if it passes date filter
   });
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm bg-white">
       {/* Table Toolbar */}
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex justify-end gap-3">
-        <button 
-          onClick={() => setShowRepayments(!showRepayments)}
-          className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-md shadow-sm transition-all border ${
-            showRepayments 
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
-              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <Banknote className="w-3 h-3" />
-          {showRepayments ? t.hideRepayments : t.showRepayments}
-        </button>
+      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        
+        {/* Date Filter Control */}
+        <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-gray-500">
+                <CalendarSearch className="w-4 h-4" />
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{t.filterFrom}</span>
+            </div>
+            <div className="relative flex items-center">
+                <input 
+                    type="date" 
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-1.5 text-gray-900 border bg-white"
+                    style={{ colorScheme: 'light' }}
+                />
+                {filterDate && (
+                    <button 
+                        onClick={() => setFilterDate('')}
+                        className="ml-2 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        title={t.clearFilter}
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+        </div>
 
-        <button 
-          onClick={() => setShowSegments(!showSegments)}
-          className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-md shadow-sm transition-all border ${
-            showSegments 
-              ? 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200' 
-              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <Layers className="w-3 h-3" />
-          {showSegments ? t.hideBreakdown : t.showBreakdown}
-        </button>
+        {/* Visibility Toggles */}
+        <div className="flex items-center gap-3">
+            <button 
+            onClick={() => setShowRepayments(!showRepayments)}
+            className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-md shadow-sm transition-all border ${
+                showRepayments 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
+            >
+            <Banknote className="w-3 h-3" />
+            {showRepayments ? t.hideRepayments : t.showRepayments}
+            </button>
+
+            <button 
+            onClick={() => setShowSegments(!showSegments)}
+            className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-md shadow-sm transition-all border ${
+                showSegments 
+                ? 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200' 
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
+            >
+            <Layers className="w-3 h-3" />
+            {showSegments ? t.hideBreakdown : t.showBreakdown}
+            </button>
+        </div>
       </div>
 
       <table className="min-w-full divide-y divide-gray-200 text-sm">

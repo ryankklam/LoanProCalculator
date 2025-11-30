@@ -63,6 +63,8 @@ export const dictionary = {
     showRepayments: 'Show Repayments',
     hideBreakdown: 'Hide Breakdown',
     showBreakdown: 'Show Breakdown',
+    filterFrom: 'Show from:',
+    clearFilter: 'Clear',
     
     // Table Headers
     colPeriod: '#',
@@ -163,6 +165,8 @@ export const dictionary = {
     showRepayments: '显示还款记录',
     hideBreakdown: '隐藏分段明细',
     showBreakdown: '显示分段明细',
+    filterFrom: '起始日期:',
+    clearFilter: '清除',
 
     // Table Headers
     colPeriod: '期数',
