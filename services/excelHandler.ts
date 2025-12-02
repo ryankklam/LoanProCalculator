@@ -1,50 +1,24 @@
-
 import * as XLSX from 'xlsx';
 import { Holiday } from '../types';
 
-// Defined based on user request (clean headers)
-const COL_DATE = 'HOLIDAY_DATE';
-const COL_DESC = 'HOLIDAY_DESC';
+// Standard headers for a generic calculator
+const COL_DATE = 'Date';
+const COL_NAME = 'Name';
 
-// For the template - Cleaned headers as requested
 const TEMPLATE_HEADERS = [
-    'HOLIDAY_AREA_CODE',
-    'HOLIDAY_TYPE',
-    'HOLIDAY_DESC',
-    'APPLY_IND',
-    'HOLIDAY_DATE',
-    'COMPANY',
-    'TRAN_TIMESTAMP',
-    'HUB_BATCH_FLAG',
-    'CNY_YEAR_END_SETTLE',
-    'COUNTRY'
+    'Date',
+    'Name'
 ];
 
-// Sample data for the template matching the headers
+// Simple sample data
 const TEMPLATE_DATA = [
     {
-        'HOLIDAY_AREA_CODE': 'ABW',
-        'HOLIDAY_TYPE': 'S',
-        'HOLIDAY_DESC': 'New Years Day',
-        'APPLY_IND': 'B',
-        'HOLIDAY_DATE': '2024-01-01',
-        'COMPANY': 'ALL',
-        'TRAN_TIMESTAMP': '2023-12-09 00:00:00.000000',
-        'HUB_BATCH_FLAG': 'N',
-        'CNY_YEAR_END_SETTLE': 'N',
-        'COUNTRY': 'CN'
+        'Date': '2024-01-01',
+        'Name': 'New Year\'s Day'
     },
     {
-        'HOLIDAY_AREA_CODE': 'ABW',
-        'HOLIDAY_TYPE': 'S',
-        'HOLIDAY_DESC': 'Spring Festival',
-        'APPLY_IND': 'B',
-        'HOLIDAY_DATE': '2024-02-10',
-        'COMPANY': 'ALL',
-        'TRAN_TIMESTAMP': '2023-12-09 00:00:00.000000',
-        'HUB_BATCH_FLAG': 'N',
-        'CNY_YEAR_END_SETTLE': 'N',
-        'COUNTRY': 'CN'
+        'Date': '2024-02-10',
+        'Name': 'Spring Festival'
     }
 ];
 
@@ -72,26 +46,33 @@ export const parseHolidayExcel = async (file: File): Promise<Holiday[]> => {
                 const newHolidays: Holiday[] = [];
 
                 jsonData.forEach((row: any) => {
-                    // Check if the mandatory date column exists
-                    if (row[COL_DATE]) {
+                    // Try to find date in common columns if specific one missing
+                    // Case insensitive search for common date/name headers
+                    const dateKey = Object.keys(row).find(k => k.toLowerCase().includes('date') || k.toLowerCase() === 'dt');
+                    const nameKey = Object.keys(row).find(k => k.toLowerCase().includes('name') || k.toLowerCase().includes('desc') || k.toLowerCase().includes('holiday'));
+                    
+                    const dateVal = row[COL_DATE] || (dateKey ? row[dateKey] : null);
+                    const nameVal = row[COL_NAME] || (nameKey ? row[nameKey] : null);
+
+                    if (dateVal) {
                         let dateStr = '';
                         
                         // Handle Date Object (if cellDates: true worked)
-                        if (row[COL_DATE] instanceof Date) {
+                        if (dateVal instanceof Date) {
                              // Adjust for timezone offset issues often found in Excel parsing
-                             const year = row[COL_DATE].getFullYear();
-                             const month = String(row[COL_DATE].getMonth() + 1).padStart(2, '0');
-                             const day = String(row[COL_DATE].getDate()).padStart(2, '0');
+                             const year = dateVal.getFullYear();
+                             const month = String(dateVal.getMonth() + 1).padStart(2, '0');
+                             const day = String(dateVal.getDate()).padStart(2, '0');
                              dateStr = `${year}-${month}-${day}`;
                         } 
                         // Handle String (e.g., '2024-01-01')
-                        else if (typeof row[COL_DATE] === 'string') {
-                            dateStr = row[COL_DATE].trim();
+                        else if (typeof dateVal === 'string') {
+                            dateStr = dateVal.trim();
                         }
                         // Handle Excel Serial Number (fallback)
-                        else if (typeof row[COL_DATE] === 'number') {
+                        else if (typeof dateVal === 'number') {
                              // Basic excel date conversion logic
-                             const date = new Date(Math.round((row[COL_DATE] - 25569)*86400*1000));
+                             const date = new Date(Math.round((dateVal - 25569)*86400*1000));
                              const year = date.getFullYear();
                              const month = String(date.getMonth() + 1).padStart(2, '0');
                              const day = String(date.getDate()).padStart(2, '0');
@@ -101,7 +82,7 @@ export const parseHolidayExcel = async (file: File): Promise<Holiday[]> => {
                         if (dateStr) {
                             newHolidays.push({
                                 id: Date.now().toString() + Math.random().toString().slice(2),
-                                name: row[COL_DESC] || 'Holiday', // Removed fallback logic
+                                name: nameVal || 'Holiday', // Default name
                                 startDate: dateStr,
                                 endDate: dateStr // Excel usually lists single days, so start=end
                             });

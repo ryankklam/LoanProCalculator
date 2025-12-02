@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Holiday, RateRange, RepaymentEvent } from '../types';
 import { Trash2, CalendarOff, TrendingUp, ArrowRight, DollarSign, Coins, Info, Upload, FileDown, Loader2 } from 'lucide-react';
@@ -121,40 +120,10 @@ export const EventsPanel: React.FC<Props> = ({
     <div className="space-y-6">
       {/* Holidays Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex justify-between items-start mb-4">
-            <div className="flex items-center text-rose-700">
-                <CalendarOff className="w-5 h-5 mr-2" />
-                <h3 className="font-bold text-lg">{t.holidayIntervals}</h3>
-                <Tooltip text={t.holidayIntervalsTooltip} />
-            </div>
-            
-            {/* Excel Actions */}
-            <div className="flex gap-2">
-                <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    className="hidden" 
-                    accept=".xlsx, .xls"
-                    onChange={handleFileUpload}
-                />
-                <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isImporting}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    title="Import Excel"
-                >
-                    {isImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Upload className="w-3.5 h-3.5"/>}
-                    {t.importExcel}
-                </button>
-                <button 
-                    onClick={downloadHolidayTemplate}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                    title="Download Template"
-                >
-                    <FileDown className="w-3.5 h-3.5"/>
-                    <span className="hidden sm:inline">{t.downloadTemplate}</span>
-                </button>
-            </div>
+        <div className="flex items-center text-rose-700 mb-4">
+            <CalendarOff className="w-5 h-5 mr-2" />
+            <h3 className="font-bold text-lg">{t.holidayIntervals}</h3>
+            <Tooltip text={t.holidayIntervalsTooltip} />
         </div>
         
         <div className="grid grid-cols-1 gap-2 mb-4">
@@ -192,7 +161,7 @@ export const EventsPanel: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="max-h-32 overflow-y-auto space-y-2">
+        <div className="max-h-32 overflow-y-auto space-y-2 mb-4">
             {holidays.length === 0 && <p className="text-gray-400 text-xs italic text-center">{t.noHolidays}</p>}
           {holidays.map(h => (
             <div key={h.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
@@ -205,6 +174,35 @@ export const EventsPanel: React.FC<Props> = ({
               </button>
             </div>
           ))}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex justify-end items-center pt-3 border-t border-gray-100 gap-3">
+            <input 
+                type="file" 
+                ref={fileInputRef}
+                className="hidden" 
+                accept=".xlsx, .xls"
+                onChange={handleFileUpload}
+            />
+            <button 
+                onClick={downloadHolidayTemplate}
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
+                title="Download Template"
+            >
+                <FileDown className="w-3.5 h-3.5"/>
+                {t.downloadTemplate}
+            </button>
+            <div className="h-4 w-px bg-gray-300"></div>
+            <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs font-medium text-gray-700 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
+                title="Import Excel"
+            >
+                {isImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Upload className="w-3.5 h-3.5"/>}
+                {t.importExcel}
+            </button>
         </div>
       </div>
 
