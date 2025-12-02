@@ -133,7 +133,15 @@ export const EventsPanel: React.FC<Props> = ({
                 className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
                 style={{ colorScheme: 'light' }}
                 value={newHoliday.startDate}
-                onChange={(e) => setNewHoliday({ ...newHoliday, startDate: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewHoliday(prev => ({
+                    ...prev,
+                    startDate: val,
+                    // If endDate is empty or less than new startDate, sync it
+                    endDate: (!prev.endDate || prev.endDate < val) ? val : prev.endDate
+                  }));
+                }}
             />
             <ArrowRight className="w-4 h-4 text-gray-400" />
             <input
@@ -141,6 +149,7 @@ export const EventsPanel: React.FC<Props> = ({
                 className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
                 style={{ colorScheme: 'light' }}
                 value={newHoliday.endDate}
+                min={newHoliday.startDate}
                 onChange={(e) => setNewHoliday({ ...newHoliday, endDate: e.target.value })}
             />
           </div>
