@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef } from 'react';
 import { Holiday, RateRange, RepaymentEvent } from '../types';
-import { Trash2, CalendarOff, TrendingUp, ArrowRight, DollarSign, Coins, Info } from 'lucide-react';
+import { Trash2, CalendarOff, TrendingUp, ArrowRight, DollarSign, Coins, Info, Upload, FileDown, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { downloadHolidayTemplate, parseHolidayExcel } from '../services/excelHandler';
 
 interface Props {
   holidays: Holiday[];
@@ -34,6 +36,9 @@ export const EventsPanel: React.FC<Props> = ({
   const [newHoliday, setNewHoliday] = useState({ startDate: '', endDate: '', name: '' });
   const [newRate, setNewRate] = useState({ startDate: '', endDate: '', rate: '' });
   const [newRepayment, setNewRepayment] = useState({ date: '', amount: '' });
+  
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addHoliday = () => {
     if (newHoliday.startDate && newHoliday.endDate) {
@@ -53,6 +58,28 @@ export const EventsPanel: React.FC<Props> = ({
 
   const removeHoliday = (id: string) => {
     setHolidays(prev => prev.filter(h => h.id !== id));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setIsImporting(true);
+      try {
+          const importedHolidays = await parseHolidayExcel(file);
+          if (importedHolidays.length > 0) {
+              setHolidays(prev => [...prev, ...importedHolidays]);
+              alert(t.importSuccess + ` (${importedHolidays.length})`);
+          } else {
+              alert(t.importError);
+          }
+      } catch (error) {
+          console.error(error);
+          alert(t.importError);
+      } finally {
+          setIsImporting(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+      }
   };
 
   const addRateRange = () => {
@@ -94,10 +121,40 @@ export const EventsPanel: React.FC<Props> = ({
     <div className="space-y-6">
       {/* Holidays Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-center mb-4 text-rose-700">
-          <CalendarOff className="w-5 h-5 mr-2" />
-          <h3 className="font-bold text-lg">{t.holidayIntervals}</h3>
-          <Tooltip text={t.holidayIntervalsTooltip} />
+        <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center text-rose-700">
+                <CalendarOff className="w-5 h-5 mr-2" />
+                <h3 className="font-bold text-lg">{t.holidayIntervals}</h3>
+                <Tooltip text={t.holidayIntervalsTooltip} />
+            </div>
+            
+            {/* Excel Actions */}
+            <div className="flex gap-2">
+                <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden" 
+                    accept=".xlsx, .xls"
+                    onChange={handleFileUpload}
+                />
+                <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isImporting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    title="Import Excel"
+                >
+                    {isImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Upload className="w-3.5 h-3.5"/>}
+                    {t.importExcel}
+                </button>
+                <button 
+                    onClick={downloadHolidayTemplate}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    title="Download Template"
+                >
+                    <FileDown className="w-3.5 h-3.5"/>
+                    <span className="hidden sm:inline">{t.downloadTemplate}</span>
+                </button>
+            </div>
         </div>
         
         <div className="grid grid-cols-1 gap-2 mb-4">
@@ -141,7 +198,7 @@ export const EventsPanel: React.FC<Props> = ({
             <div key={h.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
               <div className="flex flex-col">
                   <span className="font-medium text-gray-700">{h.name}</span>
-                  <span className="text-xs text-gray-500">{h.startDate} to {h.endDate}</span>
+                  <span className="text-xs text-gray-500">{h.startDate === h.endDate ? h.startDate : `${h.startDate} to ${h.endDate}`}</span>
               </div>
               <button onClick={() => removeHoliday(h.id)} className="text-gray-400 hover:text-red-500">
                 <Trash2 className="w-4 h-4" />

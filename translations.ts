@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'cn';
 
 export const dictionary = {
@@ -34,6 +35,10 @@ export const dictionary = {
     holidayIntervalsTooltip: 'Specify date ranges when the bank is closed (e.g., National Holidays). Payments falling on these dates will be shifted to the nearest business day according to your Global Configuration.',
     holidayNamePlaceholder: 'Holiday Name (Optional)',
     noHolidays: 'No holidays added',
+    importExcel: 'Import Excel',
+    downloadTemplate: 'Download Template',
+    importSuccess: 'Successfully imported holidays!',
+    importError: 'Failed to parse file. Please check the format.',
     
     rateIntervals: 'Interest Rate Intervals',
     rateIntervalsTooltip: "Define periods where the interest rate changes. The schedule will recalculate daily interest. If 'Variable Installment' is active, the monthly payment will change for the remaining tenure.",
@@ -136,6 +141,10 @@ export const dictionary = {
     holidayIntervalsTooltip: '指定银行休息的日期范围（如法定节假日）。落在这些日期的还款将根据您的全局配置调整到最近的工作日。',
     holidayNamePlaceholder: '节日名称 (选填)',
     noHolidays: '未添加节假日',
+    importExcel: '导入 Excel',
+    downloadTemplate: '下载模板',
+    importSuccess: '成功导入节假日数据！',
+    importError: '文件解析失败，请检查格式。',
 
     rateIntervals: '利率调整区间',
     rateIntervalsTooltip: '定义利率发生变化的期间。还款计划将重新计算每日利息。如果启用“变额不变期”，剩余期限的月供将发生变化。',
