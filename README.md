@@ -1,29 +1,38 @@
 # LoanPro Calculator
 
-A professional-grade, React-based loan repayment calculator designed to handle complex financial scenarios including holiday shifting, variable interest rates, and irregular extra repayments.
+A professional-grade, React-based loan repayment calculator designed to handle complex financial scenarios including holiday shifting, variable interest rates, and irregular extra repayments. Fully supports English and Chinese interfaces.
 
 ## 🚀 Features
 
 ### Core Functionality
 - **Dynamic Scheduling:** Generates accurate repayment plans based on Principal, Interest Rate, Tenure, and Start Date.
-- **Visual Analytics:** Interactive Area Chart visualizing the outstanding balance over time.
+- **Visual Analytics:** Interactive Composed Chart offering two distinct views:
+  - **Monthly View:** Bar chart showing Principal vs Interest breakdown per payment, with a line for Outstanding Balance.
+  - **Cumulative View:** Area chart visualizing the projected total cost (Principal + Interest) accumulation over time.
 - **Detailed Table View:** A comprehensive schedule table showing breakdown of Principal, Interest, and Balance.
-- **CSV Export:** Download the full schedule, including segmented calculation details, for analysis in Excel.
+  - **Smart Filtering:** Filter schedule rows by date.
+  - **Toggle Views:** Show/Hide extra repayment events or detailed calculation segments.
+- **CSV Export:** Download the full schedule, including segmented calculation details and notes, for analysis in Excel.
 
 ### Advanced Financial Logic
 - **Recalculation Strategies:**
-  - **Variable Installment (Change Installment / 变额不变期):** Default. The loan duration remains fixed. If you make an extra repayment, your monthly payment amount decreases.
-  - **Variable Tenure (Change Tenure / 变期不变额):** The monthly payment amount remains fixed. If you make an extra repayment, the loan duration is shortened.
-- **Holiday Management:** Define holiday intervals. Repayment dates falling on holidays are automatically adjusted based on your preference:
-  - **Next Business Day (Following):** Shifts the payment to the first business day after the holiday.
-  - **Previous Business Day (Preceding):** Shifts the payment to the last business day before the holiday.
-- **Variable Interest Rates:** Support for floating rates. Define specific date ranges where the interest rate changes; the calculator adjusts daily accruals and recalculates the monthly installment (PMT) automatically based on your chosen strategy.
+  - **Variable Installment (Change Installment / 变额不变期):** Default. The loan duration remains fixed. If you make an extra repayment or the interest rate changes, your monthly payment amount is recalculated to ensure the loan ends on the original date.
+  - **Variable Tenure (Change Tenure / 变期不变额):** The monthly payment amount remains fixed (based on the initial plan). If you make an extra repayment, the loan duration is shortened. If rates rise, the tenure extends automatically.
+- **Holiday Management:**
+  - **Custom Intervals:** Define specific start and end dates for holidays. Smart input automatically syncs end dates for single-day holidays.
+  - **Excel Import:** Bulk import holiday schedules using a provided Excel template.
+  - **Smart Adjustment:** Repayment dates falling on holidays are automatically adjusted to the **Next Business Day (Following)** or **Previous Business Day (Preceding)** based on configuration.
+- **Variable Interest Rates:** Support for floating rates. Define specific date ranges where the interest rate changes; the calculator adjusts daily accruals and recalibrates the schedule automatically.
 - **Extra Repayments:** Add one-off lump sum payments. The system recalculates the schedule, reducing the principal and future interest immediately.
 
 ### Segmented Precision
 - **Interest Segmentation:** When a rate change or repayment event occurs *during* a billing period, the calculator splits the period into segments.
 - **Transparency:** "Show Breakdown" mode reveals exactly how many days and how much interest accrued on which principal balance for every partial period.
 - **Actual/365:** Calculations use the Actual/365 day count convention for maximum precision.
+
+### 🌐 Internationalization
+- **Bi-lingual Support:** Seamlessly switch between English (EN) and Chinese (CN).
+- **Localized Formatting:** Dates and currencies adjust to the selected locale.
 
 ## 🛠️ Tech Stack
 
@@ -32,6 +41,7 @@ A professional-grade, React-based loan repayment calculator designed to handle c
 - **Icons:** Lucide React
 - **Date Manipulation:** date-fns
 - **Charting:** Recharts
+- **Data Processing:** xlsx (SheetJS)
 - **Tooling:** Vite / Create React App (Compatible)
 
 ## 📖 Usage Guide
@@ -47,12 +57,15 @@ Use the panel on the left to input:
 
 ### 2. Managing Events
 Use the **Events Panel** to handle irregularities:
-- **Holiday Intervals**: Add start/end dates for holidays. Payments due on these days move according to your adjustment setting.
+- **Holiday Intervals**: Manually add start/end dates for holidays, or use the **Import Excel** feature to upload a list in bulk. A template is provided for download.
 - **Interest Rate Intervals**: If the rate changes (e.g., after 1 year), add the new rate and the date range.
 - **Extra Repayments**: Add the date and amount for any pre-payments.
 
 ### 3. Analyzing the Schedule
 Click **Generate Repayment Plan** to calculate.
+
+**Chart Controls:**
+- Toggle between **Total (Period)** for monthly cash flow view and **Projection (Cumul.)** for total cost analysis.
 
 **Table Controls:**
 - **Show/Hide Repayments:** Toggles the visibility of the extra repayment event rows (highlighted in Green).
