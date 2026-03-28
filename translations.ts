@@ -168,7 +168,7 @@ export const dictionary = {
     // Buttons
     generatePlan: '生成还款计划',
     exportCsv: '导出 CSV',
-    toggleLang: 'Switch to English',
+    toggleLang: '切换到中文',
 
     // Summary
     totalRepayment: '还款总额',
