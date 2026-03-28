@@ -18,6 +18,7 @@ const App: React.FC = () => {
     initialRate: 5.0,
     tenureMonths: 12,
     startDate: new Date().toISOString().split('T')[0],
+    dayCountConvention: 365,
     holidayShiftMode: 'AFTER',
     adjustmentStrategy: 'CHANGE_INSTALLMENT',
   });
