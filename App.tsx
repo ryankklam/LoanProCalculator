@@ -119,7 +119,7 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-6">
             <div className="text-sm text-gray-500 hidden sm:block">
-              {t.methodology}
+              {t.methodology}{params.dayCountConvention === 365 ? t.actual365 : t.thirty360}
             </div>
             <button 
                 onClick={toggleLanguage}

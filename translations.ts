@@ -5,7 +5,7 @@ export const dictionary = {
   en: {
     appTitle: 'LoanPro',
     appSubtitle: 'Calculator',
-    methodology: 'Straight Line Method • Actual/365',
+    methodology: 'Straight Line Method • ',
     
     // Config Panel
     loanDetails: 'Loan Details',
@@ -115,7 +115,7 @@ export const dictionary = {
   cn: {
     appTitle: '贷款',
     appSubtitle: '计算器',
-    methodology: '等额本息 • 年基准天数365',
+    methodology: '等额本息 • ',
 
     // Config Panel
     loanDetails: '贷款详情',
