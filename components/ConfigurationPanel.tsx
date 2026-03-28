@@ -99,6 +99,21 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
             </div>
         </div>
 
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t.dayCountBasis}
+            <Tooltip text={t.dayCountBasisTooltip} />
+          </label>
+          <select
+            value={params.dayCountConvention}
+            onChange={(e) => onChange({ ...params, dayCountConvention: Number(e.target.value) as 360 | 365 })}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value={365}>{t.actual365}</option>
+            <option value={360}>{t.thirty360}</option>
+          </select>
+        </div>
+
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
             {t.startDate}
