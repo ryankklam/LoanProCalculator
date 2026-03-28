@@ -116,7 +116,7 @@ export const calculateSchedule = (
   repayments: RepaymentEvent[],
   language: Language = 'en'
 ): { schedule: Installment[]; summary: Summary } => {
-  const { amount, initialRate, tenureMonths, startDate, holidayShiftMode, adjustmentStrategy } = params;
+  const { amount, initialRate, tenureMonths, startDate, holidayShiftMode, adjustmentStrategy, dayCountConvention } = params;
   const t = dictionary[language];
   const dateLocale = language === 'cn' ? 'yyyy-MM-dd' : 'MMM d';
   
@@ -223,7 +223,7 @@ export const calculateSchedule = (
              activeSegmentRate = dailyRatePercent;
         }
 
-        const dailyInterest = currentBalance * (dailyRatePercent / 100) / 365;
+        const dailyInterest = currentBalance * (dailyRatePercent / 100) / dayCountConvention;
         interestForPeriod += dailyInterest;
         segmentInterest += dailyInterest;
         accumulatedBalanceForRate += currentBalance;
