@@ -72,6 +72,7 @@ interface LoanParams {
   startDate: string;                 // 起息日 (YYYY-MM-DD)
   holidayShiftMode: 'BEFORE' | 'AFTER';  // 节假日调休模式
   adjustmentStrategy: 'CHANGE_INSTALLMENT' | 'CHANGE_TENURE'; // 重算策略
+  dayCountConvention: DayCountConvention;
 }
 
 // 节假日

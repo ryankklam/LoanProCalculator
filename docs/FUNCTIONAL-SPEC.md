@@ -34,6 +34,7 @@ LoanPro Calculator 是一款专业级贷款还款计算器，基于 React 19 + T
 | 年利率 (Rate) | number (%) | 名义年利率 | 5.0% |
 | 期限 (Tenure) | number | 贷款总时长（月） | 12 |
 | 起息日 (Start Date) | string (YYYY-MM-DD) | 贷款发放日期 | 当前日期 |
+| 年基准天数 (Day Count Basis) | 360 \| 365 | 计算利息的年基准天数。30/360 为银行标准，Actual/365 为精确计算 | 365 |
 
 #### 2.1.2 全局策略配置
 
