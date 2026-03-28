@@ -1,8 +1,11 @@
+export type DayCountConvention = 360 | 365;
+
 export interface LoanParams {
   amount: number;
   initialRate: number; // Percentage (e.g., 5.5)
   tenureMonths: number;
   startDate: string; // ISO Date string YYYY-MM-DD
+  dayCountConvention: DayCountConvention;
   holidayShiftMode: 'BEFORE' | 'AFTER'; // 'BEFORE' = Preceding, 'AFTER' = Following
   adjustmentStrategy: 'CHANGE_INSTALLMENT' | 'CHANGE_TENURE'; // 'CHANGE_INSTALLMENT' = 变额不变期, 'CHANGE_TENURE' = 变期不变额
 }
