@@ -1,4 +1,6 @@
 export type DayCountConvention = 360 | 365;
+export type RepaymentScheme = 'EQUAL_INSTALLMENT' | 'IRREGULAR_REPAYMENT_5';
+export type InterestPaymentFrequency = 'MONTHLY' | 'QUARTERLY' | 'BIWEEKLY';
 
 export interface LoanParams {
   amount: number;
@@ -8,6 +10,9 @@ export interface LoanParams {
   dayCountConvention: DayCountConvention;
   holidayShiftMode: 'BEFORE' | 'AFTER'; // 'BEFORE' = Preceding, 'AFTER' = Following
   adjustmentStrategy: 'CHANGE_INSTALLMENT' | 'CHANGE_TENURE'; // 'CHANGE_INSTALLMENT' = 变额不变期, 'CHANGE_TENURE' = 变期不变额
+  repaymentScheme: RepaymentScheme; // 还款方案
+  interestPaymentFrequency: InterestPaymentFrequency; // 利息还款频率（仅适用于不规则还款5）
+  interestPaymentDay: number; // 利息还款日期（1-31）
 }
 
 export interface Holiday {
@@ -56,4 +61,5 @@ export interface Summary {
   totalInterest: number;
   totalPaid: number;
   lastPaymentDate: string;
+  loanEndDate: string;
 }

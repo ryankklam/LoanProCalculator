@@ -1,4 +1,4 @@
-import { LoanParams, Holiday, RateRange, Installment, Summary, RepaymentEvent } from '../types';
+import { LoanParams, Holiday, RateRange, Installment, Summary, RepaymentEvent, InterestPaymentFrequency } from '../types';
 import { addMonths, addDays, differenceInDays, isSameDay, isAfter, format, endOfDay, isWithinInterval } from 'date-fns';
 import { dictionary, Language } from '../translations';
 
@@ -116,258 +116,481 @@ export const calculateSchedule = (
   repayments: RepaymentEvent[],
   language: Language = 'en'
 ): { schedule: Installment[]; summary: Summary } => {
-  const { amount, initialRate, tenureMonths, startDate, holidayShiftMode, adjustmentStrategy, dayCountConvention } = params;
+  const { amount, initialRate, tenureMonths, startDate, holidayShiftMode, adjustmentStrategy, dayCountConvention, repaymentScheme, interestPaymentFrequency, interestPaymentDay } = params;
   const t = dictionary[language];
   const dateLocale = language === 'cn' ? 'yyyy-MM-dd' : 'MMM d';
   
   const schedule: Installment[] = [];
   const startObj = parseISO(startDate);
   
+  // 计算贷款到期日
+  const loanEndDate = addMonths(startObj, tenureMonths);
+  
   let currentBalance = amount;
   let previousDate = startObj;
   
   let totalInterest = 0;
 
-  // Initialize PMT state
-  let currentRateForPMT = getRateForDay(startObj, initialRate, rateRanges);
-  let currentPMT = calculatePMT(amount, currentRateForPMT, tenureMonths);
-  
-  let fixedInstallmentTarget = currentPMT;
-
-  // Safety Cap for CHANGE_TENURE
-  const MAX_ITERATIONS = 600; 
-
-  let i = 1;
-  
-  while (currentBalance > 0.005 && i <= MAX_ITERATIONS) {
-    const nominalDate = addMonths(startObj, i);
-    let actualDate: Date;
-
-    // Apply Holiday Shifting Logic
-    if (holidayShiftMode === 'BEFORE') {
-      actualDate = getPreviousBusinessDay(nominalDate, holidays);
-    } else {
-      actualDate = getNextBusinessDay(nominalDate, holidays);
-    }
+  // 处理不规则还款5方案
+  if (repaymentScheme === 'IRREGULAR_REPAYMENT_5') {
+    // 按日期排序本金还款
+    const sortedRepayments = [...repayments].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
-    if (!isAfter(actualDate, previousDate)) {
-        actualDate = addDays(previousDate, 1);
-    }
-
-    const daysCount = differenceInDays(actualDate, previousDate);
-    const notes: string[] = [];
-
-    if (!isSameDay(nominalDate, actualDate)) {
-      const shiftDir = isAfter(actualDate, nominalDate) ? t.noteDeferred : t.notePreponed;
-      const formattedNominal = format(nominalDate, dateLocale);
-      notes.push(`${shiftDir} ${t.noteFrom} ${formattedNominal} (${t.noteHoliday})`);
-    }
-
-    // --- Rate Change Check for PMT Recalculation (Start of Period) ---
-    const rateAtPeriodStart = getRateForDay(previousDate, initialRate, rateRanges);
-    
-    if (Math.abs(rateAtPeriodStart - currentRateForPMT) > 0.001) {
-        currentRateForPMT = rateAtPeriodStart;
+    // 生成利息还款日期
+    const generatePaymentDates = (start: Date, frequency: InterestPaymentFrequency, paymentDay: number, end: Date): Date[] => {
+      const dates: Date[] = [];
+      let current = new Date(start);
+      
+      // 设置第一个还款日期为指定的还款日
+      current.setDate(paymentDay);
+      if (current < start) {
+        // 如果指定的还款日已经过去，则设置为下个月的还款日
+        current.setMonth(current.getMonth() + 1);
+      }
+      
+      while (current <= end) {
+        dates.push(new Date(current));
         
-        if (adjustmentStrategy === 'CHANGE_INSTALLMENT') {
-            const remainingMonths = Math.max(1, tenureMonths - (i - 1));
-            currentPMT = calculatePMT(currentBalance, currentRateForPMT, remainingMonths);
-            notes.push(`${t.noteRateChanged} ${currentRateForPMT}% - ${t.notePmtRecalculated}`);
-        } else {
-            currentPMT = fixedInstallmentTarget;
-            notes.push(`${t.noteRateChanged} ${currentRateForPMT}% - ${t.notePmtFixed}`);
+        switch (frequency) {
+          case 'MONTHLY':
+            current.setMonth(current.getMonth() + 1);
+            current.setDate(paymentDay);
+            break;
+          case 'QUARTERLY':
+            current.setMonth(current.getMonth() + 3);
+            current.setDate(paymentDay);
+            break;
+          case 'BIWEEKLY':
+            current.setDate(current.getDate() + 14);
+            break;
         }
-    }
-
-    // --- Daily Interest & Repayment Loop ---
-    let interestForPeriod = 0;
-    let accumulatedBalanceForRate = 0;
+      }
+      
+      return dates;
+    };
     
-    // Segment Tracking
-    let segmentInterest = 0;
-    let lastEventDate = previousDate;
-    let segmentDaysCounter = 0; // Explicit counter to avoid date math confusion on boundaries
-    // We track the rate used for the current accumulating segment
-    let activeSegmentRate = getRateForDay(addDays(previousDate, 1), initialRate, rateRanges);
-
-    for (let d = 1; d <= daysCount; d++) {
+    // 确定贷款结束日期（考虑用户配置的本金还款计划）
+    const endDate = sortedRepayments.length > 0 
+      ? new Date(Math.max(new Date(sortedRepayments[sortedRepayments.length - 1].date).getTime(), loanEndDate.getTime()))
+      : loanEndDate;
+    
+    // 生成利息还款日期
+    const interestPaymentDates = generatePaymentDates(startObj, interestPaymentFrequency, interestPaymentDay, endDate);
+    
+    // 合并本金还款和利息还款日期
+    const allEvents = [
+      ...sortedRepayments.map(r => ({ date: new Date(r.date), type: 'PRINCIPAL' as const, amount: r.amount })),
+      ...interestPaymentDates.map(date => ({ date, type: 'INTEREST' as const, amount: 0 })),
+      // 在贷款到期日添加一个本金还款计划，确保本金全部还清
+      { date: loanEndDate, type: 'PRINCIPAL' as const, amount: 0 }
+    ].sort((a, b) => a.date.getTime() - b.date.getTime());
+    
+    let i = 1;
+    let lastInterestPaymentDate = startObj;
+    
+    for (const event of allEvents) {
+      if (currentBalance <= 0.005) break;
+      
+      const nominalDate = event.date;
+      let actualDate: Date;
+      
+      // 应用节假日调整
+      if (holidayShiftMode === 'BEFORE') {
+        actualDate = getPreviousBusinessDay(nominalDate, holidays);
+      } else {
+        actualDate = getNextBusinessDay(nominalDate, holidays);
+      }
+      
+      if (!isAfter(actualDate, previousDate)) {
+        actualDate = addDays(previousDate, 1);
+      }
+      
+      const daysCount = differenceInDays(actualDate, previousDate);
+      const notes: string[] = [];
+      
+      if (!isSameDay(nominalDate, actualDate)) {
+        const shiftDir = isAfter(actualDate, nominalDate) ? t.noteDeferred : t.notePreponed;
+        const formattedNominal = format(nominalDate, dateLocale);
+        notes.push(`${shiftDir} ${t.noteFrom} ${formattedNominal} (${t.noteHoliday})`);
+      }
+      
+      // --- 每日利息计算和分段跟踪 ---
+      let interestForPeriod = 0;
+      let accumulatedBalanceForRate = 0;
+      
+      // 分段跟踪
+      let segmentInterest = 0;
+      let lastEventDate = previousDate;
+      let segmentDaysCounter = 0;
+      let activeSegmentRate = getRateForDay(addDays(previousDate, 1), initialRate, rateRanges);
+      
+      for (let d = 1; d <= daysCount; d++) {
         const calculationDay = addDays(previousDate, d);
         const dailyRatePercent = getRateForDay(calculationDay, initialRate, rateRanges);
         
-        // 1. Check for Rate Change compared to active segment
+        // 检查利率变化
         if (Math.abs(dailyRatePercent - activeSegmentRate) > 0.0001) {
-             // Close the previous segment
-             if (segmentDaysCounter > 0) {
-                 schedule.push({
-                    type: 'SEGMENT',
-                    period: i,
-                    nominalDate: format(calculationDay, 'yyyy-MM-dd'),
-                    actualDate: format(calculationDay, 'yyyy-MM-dd'),
-                    // Visual Start: Last Event Date. Visual End: Rate Change Date (Today).
-                    segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
-                    segmentEndDate: format(calculationDay, 'yyyy-MM-dd'),
-                    daysCount: segmentDaysCounter,
-                    principal: 0,
-                    interest: segmentInterest,
-                    total: 0,
-                    outstandingBalance: currentBalance,
-                    effectiveRate: activeSegmentRate,
-                    notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
-                });
-             }
-             
-             // Reset for new segment
-             lastEventDate = calculationDay;
-             segmentInterest = 0;
-             segmentDaysCounter = 0;
-             activeSegmentRate = dailyRatePercent;
+          // 关闭前一个分段
+          if (segmentDaysCounter > 0) {
+            schedule.push({
+              type: 'SEGMENT',
+              period: i,
+              nominalDate: format(calculationDay, 'yyyy-MM-dd'),
+              actualDate: format(calculationDay, 'yyyy-MM-dd'),
+              segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
+              segmentEndDate: format(calculationDay, 'yyyy-MM-dd'),
+              daysCount: segmentDaysCounter,
+              principal: 0,
+              interest: segmentInterest,
+              total: 0,
+              outstandingBalance: currentBalance,
+              effectiveRate: activeSegmentRate,
+              notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
+            });
+          }
+          
+          // 重置分段
+          lastEventDate = calculationDay;
+          segmentInterest = 0;
+          segmentDaysCounter = 0;
+          activeSegmentRate = dailyRatePercent;
         }
-
+        
         const dailyInterest = currentBalance * (dailyRatePercent / 100) / dayCountConvention;
         interestForPeriod += dailyInterest;
         segmentInterest += dailyInterest;
         accumulatedBalanceForRate += currentBalance;
         segmentDaysCounter++;
-
-        // 2. Check for Extra Repayment
-        const dailyRepayments = repayments.filter(r => isSameDay(parseISO(r.date), calculationDay));
-        
-        if (dailyRepayments.length > 0) {
-            for(const r of dailyRepayments) {
-                // Segment before repayment (ending ON calculationDay)
-                if (segmentDaysCounter > 0) {
-                    schedule.push({
-                        type: 'SEGMENT',
-                        period: i,
-                        nominalDate: format(calculationDay, 'yyyy-MM-dd'),
-                        actualDate: format(calculationDay, 'yyyy-MM-dd'),
-                        segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
-                        segmentEndDate: format(calculationDay, 'yyyy-MM-dd'),
-                        daysCount: segmentDaysCounter, 
-                        principal: 0,
-                        interest: segmentInterest, 
-                        total: 0,
-                        outstandingBalance: currentBalance, 
-                        effectiveRate: activeSegmentRate,
-                        notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
-                    });
-                }
-                
-                // Apply Repayment
-                currentBalance -= r.amount;
-                if(currentBalance < 0) currentBalance = 0;
-
-                // Log Repayment Row
-                schedule.push({
-                  type: 'REPAYMENT',
-                  period: i,
-                  nominalDate: format(calculationDay, 'yyyy-MM-dd'),
-                  actualDate: format(calculationDay, 'yyyy-MM-dd'),
-                  daysCount: 0, 
-                  principal: r.amount,
-                  interest: 0, 
-                  total: r.amount,
-                  outstandingBalance: currentBalance,
-                  effectiveRate: 0,
-                  notes: [t.noteExtraRepayment]
-                });
-                
-                lastEventDate = calculationDay;
-                segmentInterest = 0;
-                segmentDaysCounter = 0;
-                // activeSegmentRate stays the same (dailyRatePercent) for this day, 
-                // but next loop iteration might change it if tomorrow's rate is different.
-
-                // Recalculate PMT based on Strategy
-                currentRateForPMT = dailyRatePercent; 
-                
-                if (adjustmentStrategy === 'CHANGE_INSTALLMENT') {
-                    const remainingMonths = Math.max(1, tenureMonths - (i - 1));
-                    currentPMT = calculatePMT(currentBalance, currentRateForPMT, remainingMonths);
-                }
-            }
-        }
-    }
-
-    // Final Segment of the period
-    if (segmentDaysCounter > 0) {
-         schedule.push({
-            type: 'SEGMENT',
-            period: i,
-            nominalDate: format(actualDate, 'yyyy-MM-dd'),
-            actualDate: format(actualDate, 'yyyy-MM-dd'),
-            segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
-            segmentEndDate: format(actualDate, 'yyyy-MM-dd'),
-            daysCount: segmentDaysCounter, 
-            principal: 0,
-            interest: segmentInterest, 
-            total: 0,
-            outstandingBalance: currentBalance,
-            effectiveRate: activeSegmentRate,
-            notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
+      }
+      
+      // 最终分段
+      if (segmentDaysCounter > 0) {
+        schedule.push({
+          type: 'SEGMENT',
+          period: i,
+          nominalDate: format(actualDate, 'yyyy-MM-dd'),
+          actualDate: format(actualDate, 'yyyy-MM-dd'),
+          segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
+          segmentEndDate: format(actualDate, 'yyyy-MM-dd'),
+          daysCount: segmentDaysCounter,
+          principal: 0,
+          interest: segmentInterest,
+          total: 0,
+          outstandingBalance: currentBalance,
+          effectiveRate: activeSegmentRate,
+          notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
         });
-    }
-
-    // Effective Rate
-    let effectiveRate = 0;
-    if (accumulatedBalanceForRate > 0) {
+      }
+      
+      // 计算有效利率
+      let effectiveRate = 0;
+      if (accumulatedBalanceForRate > 0) {
         effectiveRate = (interestForPeriod / accumulatedBalanceForRate) * 365 * 100;
+      }
+      
+      // 处理还款
+      let principalPayment = 0;
+      let interestPayment = 0;
+      let totalPayment = 0;
+      let shouldAddRecord = false;
+      
+      if (event.type === 'PRINCIPAL') {
+        // 本金还款 - 不规则还款5，本金还款不会同时还利息
+        // 如果是贷款到期日且金额为0，将剩余本金和利息全部还清
+        if (isSameDay(event.date, loanEndDate) && event.amount === 0 && currentBalance > 0) {
+          principalPayment = currentBalance;
+          interestPayment = interestForPeriod;
+          notes.push(t.loanEndRepayment);
+        } else {
+          principalPayment = event.amount;
+          interestPayment = 0;
+          notes.push(t.principalRepayment);
+        }
+        
+        totalPayment = principalPayment + interestPayment;
+        
+        currentBalance -= principalPayment;
+        if (currentBalance < 0.01) currentBalance = 0;
+        
+        totalInterest += interestPayment;
+        
+        shouldAddRecord = true;
+      } else if (event.type === 'INTEREST') {
+        // 利息还款
+        interestPayment = interestForPeriod;
+        totalPayment = interestPayment;
+        
+        totalInterest += interestPayment;
+        
+        notes.push(t.interestRepayment);
+        shouldAddRecord = true;
+      }
+      
+      // 只有在实际有还款时才添加还款记录
+      if (shouldAddRecord) {
+        schedule.push({
+          type: 'INSTALLMENT',
+          period: i,
+          nominalDate: format(nominalDate, 'yyyy-MM-dd'),
+          actualDate: format(actualDate, 'yyyy-MM-dd'),
+          daysCount,
+          principal: principalPayment,
+          interest: interestPayment,
+          total: totalPayment,
+          outstandingBalance: currentBalance,
+          effectiveRate: effectiveRate,
+          notes
+        });
+        
+        previousDate = actualDate;
+        lastInterestPaymentDate = actualDate;
+        i++;
+      }
     }
-
-    // --- Calculate Installment Split ---
+  } else {
+    // 原有等额本息还款逻辑
+    // Initialize PMT state
+    let currentRateForPMT = getRateForDay(startObj, initialRate, rateRanges);
+    let currentPMT = calculatePMT(amount, currentRateForPMT, tenureMonths);
     
-    let principalPayment = 0;
-    let totalPayment = currentPMT;
+    let fixedInstallmentTarget = currentPMT;
 
-    const canPayOff = (currentBalance + interestForPeriod) <= totalPayment;
-    const isForcedEnd = (adjustmentStrategy === 'CHANGE_INSTALLMENT' && i === tenureMonths);
+    // Safety Cap for CHANGE_TENURE
+    const MAX_ITERATIONS = 600; 
 
-    if (canPayOff || isForcedEnd) {
-        principalPayment = currentBalance;
-        totalPayment = principalPayment + interestForPeriod;
-    } else {
-        principalPayment = totalPayment - interestForPeriod;
+    let i = 1;
+    
+    while (currentBalance > 0.005 && i <= MAX_ITERATIONS) {
+      const nominalDate = addMonths(startObj, i);
+      let actualDate: Date;
+
+      // Apply Holiday Shifting Logic
+      if (holidayShiftMode === 'BEFORE') {
+        actualDate = getPreviousBusinessDay(nominalDate, holidays);
+      } else {
+        actualDate = getNextBusinessDay(nominalDate, holidays);
+      }
+      
+      if (!isAfter(actualDate, previousDate)) {
+          actualDate = addDays(previousDate, 1);
+      }
+
+      const daysCount = differenceInDays(actualDate, previousDate);
+      const notes: string[] = [];
+
+      if (!isSameDay(nominalDate, actualDate)) {
+        const shiftDir = isAfter(actualDate, nominalDate) ? t.noteDeferred : t.notePreponed;
+        const formattedNominal = format(nominalDate, dateLocale);
+        notes.push(`${shiftDir} ${t.noteFrom} ${formattedNominal} (${t.noteHoliday})`);
+      }
+
+      // --- Rate Change Check for PMT Recalculation (Start of Period) ---
+      const rateAtPeriodStart = getRateForDay(previousDate, initialRate, rateRanges);
+      
+      if (Math.abs(rateAtPeriodStart - currentRateForPMT) > 0.001) {
+          currentRateForPMT = rateAtPeriodStart;
+          
+          if (adjustmentStrategy === 'CHANGE_INSTALLMENT') {
+              const remainingMonths = Math.max(1, tenureMonths - (i - 1));
+              currentPMT = calculatePMT(currentBalance, currentRateForPMT, remainingMonths);
+              notes.push(`${t.noteRateChanged} ${currentRateForPMT}% - ${t.notePmtRecalculated}`);
+          } else {
+              currentPMT = fixedInstallmentTarget;
+              notes.push(`${t.noteRateChanged} ${currentRateForPMT}% - ${t.notePmtFixed}`);
+          }
+      }
+
+      // --- Daily Interest & Repayment Loop ---
+      let interestForPeriod = 0;
+      let accumulatedBalanceForRate = 0;
+      
+      // Segment Tracking
+      let segmentInterest = 0;
+      let lastEventDate = previousDate;
+      let segmentDaysCounter = 0; // Explicit counter to avoid date math confusion on boundaries
+      // We track the rate used for the current accumulating segment
+      let activeSegmentRate = getRateForDay(addDays(previousDate, 1), initialRate, rateRanges);
+
+      for (let d = 1; d <= daysCount; d++) {
+          const calculationDay = addDays(previousDate, d);
+          const dailyRatePercent = getRateForDay(calculationDay, initialRate, rateRanges);
+          
+          // 1. Check for Rate Change compared to active segment
+          if (Math.abs(dailyRatePercent - activeSegmentRate) > 0.0001) {
+               // Close the previous segment
+               if (segmentDaysCounter > 0) {
+                   schedule.push({
+                      type: 'SEGMENT',
+                      period: i,
+                      nominalDate: format(calculationDay, 'yyyy-MM-dd'),
+                      actualDate: format(calculationDay, 'yyyy-MM-dd'),
+                      // Visual Start: Last Event Date. Visual End: Rate Change Date (Today).
+                      segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
+                      segmentEndDate: format(calculationDay, 'yyyy-MM-dd'),
+                      daysCount: segmentDaysCounter,
+                      principal: 0,
+                      interest: segmentInterest,
+                      total: 0,
+                      outstandingBalance: currentBalance,
+                      effectiveRate: activeSegmentRate,
+                      notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
+                  });
+               }
+               
+               // Reset for new segment
+               lastEventDate = calculationDay;
+               segmentInterest = 0;
+               segmentDaysCounter = 0;
+               activeSegmentRate = dailyRatePercent;
+          }
+
+          const dailyInterest = currentBalance * (dailyRatePercent / 100) / dayCountConvention;
+          interestForPeriod += dailyInterest;
+          segmentInterest += dailyInterest;
+          accumulatedBalanceForRate += currentBalance;
+          segmentDaysCounter++;
+
+          // 2. Check for Extra Repayment
+          const dailyRepayments = repayments.filter(r => isSameDay(parseISO(r.date), calculationDay));
+          
+          if (dailyRepayments.length > 0) {
+              for(const r of dailyRepayments) {
+                  // Segment before repayment (ending ON calculationDay)
+                  if (segmentDaysCounter > 0) {
+                      schedule.push({
+                          type: 'SEGMENT',
+                          period: i,
+                          nominalDate: format(calculationDay, 'yyyy-MM-dd'),
+                          actualDate: format(calculationDay, 'yyyy-MM-dd'),
+                          segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
+                          segmentEndDate: format(calculationDay, 'yyyy-MM-dd'),
+                          daysCount: segmentDaysCounter, 
+                          principal: 0,
+                          interest: segmentInterest, 
+                          total: 0,
+                          outstandingBalance: currentBalance, 
+                          effectiveRate: activeSegmentRate,
+                          notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
+                      });
+                  }
+                  
+                  // Apply Repayment
+                  currentBalance -= r.amount;
+                  if(currentBalance < 0) currentBalance = 0;
+
+                  // Log Repayment Row
+                  schedule.push({
+                    type: 'REPAYMENT',
+                    period: i,
+                    nominalDate: format(calculationDay, 'yyyy-MM-dd'),
+                    actualDate: format(calculationDay, 'yyyy-MM-dd'),
+                    daysCount: 0, 
+                    principal: r.amount,
+                    interest: 0, 
+                    total: r.amount,
+                    outstandingBalance: currentBalance,
+                    effectiveRate: 0,
+                    notes: [t.noteExtraRepayment]
+                  });
+                  
+                  lastEventDate = calculationDay;
+                  segmentInterest = 0;
+                  segmentDaysCounter = 0;
+                  // activeSegmentRate stays the same (dailyRatePercent) for this day, 
+                  // but next loop iteration might change it if tomorrow's rate is different.
+
+                  // Recalculate PMT based on Strategy
+                  currentRateForPMT = dailyRatePercent; 
+                  
+                  if (adjustmentStrategy === 'CHANGE_INSTALLMENT') {
+                      const remainingMonths = Math.max(1, tenureMonths - (i - 1));
+                      currentPMT = calculatePMT(currentBalance, currentRateForPMT, remainingMonths);
+                  }
+              }
+          }
+      }
+
+      // Final Segment of the period
+      if (segmentDaysCounter > 0) {
+           schedule.push({
+              type: 'SEGMENT',
+              period: i,
+              nominalDate: format(actualDate, 'yyyy-MM-dd'),
+              actualDate: format(actualDate, 'yyyy-MM-dd'),
+              segmentStartDate: format(lastEventDate, 'yyyy-MM-dd'),
+              segmentEndDate: format(actualDate, 'yyyy-MM-dd'),
+              daysCount: segmentDaysCounter, 
+              principal: 0,
+              interest: segmentInterest, 
+              total: 0,
+              outstandingBalance: currentBalance,
+              effectiveRate: activeSegmentRate,
+              notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
+          });
+      }
+
+      // Effective Rate
+      let effectiveRate = 0;
+      if (accumulatedBalanceForRate > 0) {
+          effectiveRate = (interestForPeriod / accumulatedBalanceForRate) * 365 * 100;
+      }
+
+      // --- Calculate Installment Split ---
+      
+      let principalPayment = 0;
+      let totalPayment = currentPMT;
+
+      const canPayOff = (currentBalance + interestForPeriod) <= totalPayment;
+      const isForcedEnd = (adjustmentStrategy === 'CHANGE_INSTALLMENT' && i === tenureMonths);
+
+      if (canPayOff || isForcedEnd) {
+          principalPayment = currentBalance;
+          totalPayment = principalPayment + interestForPeriod;
+      } else {
+          principalPayment = totalPayment - interestForPeriod;
+      }
+
+      currentBalance -= principalPayment;
+      if (currentBalance < 0.01) currentBalance = 0;
+      
+      totalInterest += interestForPeriod;
+
+      // Check if we extended tenure
+      if (adjustmentStrategy === 'CHANGE_TENURE' && i > tenureMonths) {
+          notes.push(t.noteTenureExtended);
+      } else if (adjustmentStrategy === 'CHANGE_TENURE' && canPayOff && i < tenureMonths) {
+          notes.push(t.notePaidOffEarly);
+      }
+
+      schedule.push({
+        type: 'INSTALLMENT',
+        period: i,
+        nominalDate: format(nominalDate, 'yyyy-MM-dd'),
+        actualDate: format(actualDate, 'yyyy-MM-dd'),
+        daysCount,
+        principal: principalPayment,
+        interest: interestForPeriod,
+        total: totalPayment,
+        outstandingBalance: currentBalance,
+        effectiveRate: effectiveRate,
+        notes
+      });
+
+      previousDate = actualDate;
+      
+      // Stop if balance is zero
+      if (currentBalance <= 0) break;
+      
+      i++;
     }
-
-    currentBalance -= principalPayment;
-    if (currentBalance < 0.01) currentBalance = 0;
-    
-    totalInterest += interestForPeriod;
-
-    // Check if we extended tenure
-    if (adjustmentStrategy === 'CHANGE_TENURE' && i > tenureMonths) {
-        notes.push(t.noteTenureExtended);
-    } else if (adjustmentStrategy === 'CHANGE_TENURE' && canPayOff && i < tenureMonths) {
-        notes.push(t.notePaidOffEarly);
-    }
-
-    schedule.push({
-      type: 'INSTALLMENT',
-      period: i,
-      nominalDate: format(nominalDate, 'yyyy-MM-dd'),
-      actualDate: format(actualDate, 'yyyy-MM-dd'),
-      daysCount,
-      principal: principalPayment,
-      interest: interestForPeriod,
-      total: totalPayment,
-      outstandingBalance: currentBalance,
-      effectiveRate: effectiveRate,
-      notes
-    });
-
-    previousDate = actualDate;
-    
-    // Stop if balance is zero
-    if (currentBalance <= 0) break;
-    
-    i++;
   }
 
   const summary: Summary = {
     totalPrincipal: amount,
     totalInterest,
     totalPaid: amount + totalInterest,
-    lastPaymentDate: schedule.find(s => s.outstandingBalance <= 0.01 && s.type === 'INSTALLMENT')?.actualDate || schedule[schedule.length - 1]?.actualDate
+    lastPaymentDate: schedule.find(s => s.outstandingBalance <= 0.01 && s.type === 'INSTALLMENT')?.actualDate || schedule[schedule.length - 1]?.actualDate,
+    loanEndDate: format(loanEndDate, 'yyyy-MM-dd')
   };
 
   return { schedule, summary };

@@ -113,11 +113,15 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
           {visibleSchedule.map((row, index) => {
             const isRepayment = row.type === 'REPAYMENT';
             const isSegment = row.type === 'SEGMENT';
+            const isPrincipalPayment = row.principal > 0 && row.interest === 0;
+            const isInterestPayment = row.interest > 0 && row.principal === 0;
             
             // Row styling
             let rowClass = 'hover:bg-gray-50';
             if (isRepayment) rowClass = 'bg-emerald-50 hover:bg-emerald-100';
             if (isSegment) rowClass = 'bg-gray-50 text-gray-500 italic text-xs';
+            if (isPrincipalPayment) rowClass = 'bg-blue-50 hover:bg-blue-100';
+            if (isInterestPayment) rowClass = 'bg-red-50 hover:bg-red-100';
 
             return (
               <tr key={`${row.period}-${index}`} className={`transition-colors ${rowClass}`}>
@@ -137,11 +141,11 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
                     </div>
                   ) : (
                     <>
-                        <div className={`font-medium ${isRepayment ? 'text-emerald-700' : 'text-gray-900'}`}>
+                        <div className={`font-medium ${isRepayment ? 'text-emerald-700' : isPrincipalPayment ? 'text-blue-700' : isInterestPayment ? 'text-red-700' : 'text-gray-900'}`}>
                             {formatDate(row.actualDate, locale)}
                         </div>
                         {row.notes.map((note, i) => (
-                            <div key={i} className={`text-xs mt-0.5 ${isRepayment ? 'text-emerald-600 italic' : 'text-orange-600'}`}>
+                            <div key={i} className={`text-xs mt-0.5 ${isRepayment ? 'text-emerald-600 italic' : isPrincipalPayment ? 'text-blue-600 italic' : isInterestPayment ? 'text-red-600 italic' : 'text-orange-600'}`}>
                             {note}
                             </div>
                         ))}
@@ -158,11 +162,10 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
                 </td>
 
                 <td className="px-4 py-3 text-right">
-                  {!isRepayment && (
-                     <span className={`px-2 py-1 rounded text-xs ${isSegment ? 'bg-orange-50 text-orange-700 font-medium' : 'bg-gray-100'}`}>
-                        {formatPercent(row.effectiveRate)}
-                     </span>
+                  {!isSegment && !isRepayment && (
+                     <span className="bg-gray-100 px-2 py-1 rounded text-xs">{formatPercent(row.effectiveRate)}</span>
                   )}
+                  {isSegment && '-'}
                 </td>
 
                 <td className="px-4 py-3 text-right font-medium">
@@ -171,7 +174,7 @@ export const ScheduleTable: React.FC<Props> = ({ schedule }) => {
 
                 <td className="px-4 py-3 text-right">
                    {/* Interest is key for segments */}
-                  <span className={isSegment ? 'text-gray-600' : (isRepayment ? 'text-gray-400' : 'text-red-600')}>
+                  <span className={isSegment ? 'text-gray-600' : (isRepayment ? 'text-gray-400' : isInterestPayment ? 'text-red-600' : 'text-gray-600')}>
                      {isRepayment ? '-' : formatCurrency(row.interest)}
                   </span>
                 </td>

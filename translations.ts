@@ -19,6 +19,10 @@ export const dictionary = {
     startDateTooltip: 'The date when the loan is disbursed. The first installment is usually due one month after this date.',
     dayCountBasis: 'Day Count Basis',
     dayCountBasisTooltip: 'Determines the annual day count for interest calculation. 30/360 is standard for bank loans.',
+    repaymentScheme: 'Repayment Scheme',
+    repaymentSchemeTooltip: 'Select the repayment method for the loan.',
+    straightLine: 'Straight Line',
+    irregularMode5: 'Irregular - Mode5',
     actual365: 'Actual/365 (365 Days)',
     thirty360: '30/360 (360 Days)',
     holidayAdjustment: 'Holiday Adjustment',
@@ -111,6 +115,18 @@ export const dictionary = {
     noteExtraRepayment: 'Extra Repayment',
     noteTenureExtended: 'Tenure Extended',
     notePaidOffEarly: 'Paid Off Early',
+    
+    // Irregular Repayment 5
+    repaymentPlanConfig: 'Repayment Plan Configuration',
+    repaymentPlanConfigTooltip: 'Configure interest payment frequency and principal repayment plan',
+    interestPaymentSettings: 'Interest Payment Settings',
+    principalRepaymentPlan: 'Principal Repayment Plan',
+    noPrincipalRepayments: 'No principal repayment plan',
+    loanEndRepayment: 'Loan end, repay remaining principal and interest',
+    loanEndPrincipalRepayment: 'Loan end, repay remaining principal',
+    principalRepayment: 'Principal Repayment',
+    interestRepayment: 'Interest Repayment',
+    loanEndDate: 'Loan End Date',
   },
   cn: {
     appTitle: '贷款',
@@ -129,6 +145,10 @@ export const dictionary = {
     startDateTooltip: '贷款发放日期。通常第一期还款日为此日期后一个月。',
     dayCountBasis: '年基准天数',
     dayCountBasisTooltip: '决定利息计算的年基准天数。30/360是银行贷款标准。',
+    repaymentScheme: '还款方案',
+    repaymentSchemeTooltip: '选择贷款的还款方式。',
+    straightLine: '等额本息',
+    irregularMode5: '不规则还款5',
     actual365: '实际/365 (365天)',
     thirty360: '30/360 (360天)',
     holidayAdjustment: '节假日调整',
@@ -221,5 +241,17 @@ export const dictionary = {
     noteExtraRepayment: '提前还款',
     noteTenureExtended: '期限延长',
     notePaidOffEarly: '提前还清',
+    
+    // Irregular Repayment 5
+    repaymentPlanConfig: '还款计划配置',
+    repaymentPlanConfigTooltip: '配置利息还款频率和本金还款计划',
+    interestPaymentSettings: '利息还款设置',
+    principalRepaymentPlan: '本金还款计划',
+    noPrincipalRepayments: '无本金还款计划',
+    loanEndRepayment: '贷款到期，还清剩余本金和利息',
+    loanEndPrincipalRepayment: '贷款到期，还清剩余本金',
+    principalRepayment: '本金还款',
+    interestRepayment: '利息还款',
+    loanEndDate: '贷款到期日',
   }
 };

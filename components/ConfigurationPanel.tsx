@@ -25,7 +25,7 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
     const { name, value } = e.target;
     onChange({
       ...params,
-      [name]: (name === 'startDate' || name === 'holidayShiftMode' || name === 'adjustmentStrategy') 
+      [name]: (name === 'startDate' || name === 'holidayShiftMode' || name === 'adjustmentStrategy' || name === 'repaymentScheme' || name === 'interestPaymentFrequency' || name === 'principalPaymentFrequency') 
         ? value 
         : parseFloat(value) || 0,
     });
@@ -180,6 +180,29 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
                 : t.varTenureDesc}
           </p>
         </div>
+
+        <div>
+          <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+            {t.repaymentScheme}
+            <Tooltip text={t.repaymentSchemeTooltip} />
+          </label>
+          <div className="relative rounded-md shadow-sm">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <SlidersHorizontal className="h-4 w-4 text-gray-400" />
+            </div>
+            <select
+              name="repaymentScheme"
+              value={params.repaymentScheme}
+              onChange={handleChange}
+              className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm bg-white"
+            >
+                <option value="EQUAL_INSTALLMENT">{t.straightLine}</option>
+                <option value="IRREGULAR_REPAYMENT_5">{t.irregularMode5}</option>
+            </select>
+          </div>
+        </div>
+
+
 
       </div>
     </div>

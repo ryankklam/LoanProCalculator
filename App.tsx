@@ -6,11 +6,37 @@ import { SummaryChart } from './components/SummaryChart';
 import { calculateSchedule } from './services/loanCalculator';
 import { LoanParams, Holiday, RateRange, RepaymentEvent } from './types';
 import { formatCurrency } from './utils';
-import { LayoutDashboard, Wallet, PiggyBank, RefreshCw, Download, Languages } from 'lucide-react';
+import { LayoutDashboard, Wallet, PiggyBank, RefreshCw, Download, Languages, DollarSign, Coins, Trash2, Info, Calendar } from 'lucide-react';
 import { useLanguage } from './contexts/LanguageContext';
+
+const Tooltip: React.FC<{ text: string }> = ({ text }) => (
+  <div className="group relative inline-flex items-center ml-2">
+    <Info className="w-4 h-4 text-gray-400 hover:text-blue-500 cursor-help transition-colors" />
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-center pointer-events-none leading-relaxed">
+      {text}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+    </div>
+  </div>
+);
 
 const App: React.FC = () => {
   const { language, setLanguage, t, locale } = useLanguage();
+  const [newRepayment, setNewRepayment] = useState({ date: '', amount: '' });
+  
+  const addRepayment = () => {
+    if (newRepayment.date && newRepayment.amount) {
+      setRepayments(prev => [...prev, {
+        id: Date.now().toString(),
+        date: newRepayment.date,
+        amount: parseFloat(newRepayment.amount)
+      }]);
+      setNewRepayment({ date: '', amount: '' });
+    }
+  };
+  
+  const removeRepayment = (id: string) => {
+    setRepayments(prev => prev.filter(r => r.id !== id));
+  };
 
   // Initial State
   const [params, setParams] = useState<LoanParams>({
@@ -21,6 +47,9 @@ const App: React.FC = () => {
     dayCountConvention: 365,
     holidayShiftMode: 'AFTER',
     adjustmentStrategy: 'CHANGE_INSTALLMENT',
+    repaymentScheme: 'EQUAL_INSTALLMENT',
+    interestPaymentFrequency: 'MONTHLY',
+    interestPaymentDay: 1,
   });
 
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -139,6 +168,111 @@ const App: React.FC = () => {
           {/* Left Sidebar: Controls */}
           <div className="lg:col-span-4 space-y-5">
             <ConfigurationPanel params={params} onChange={setParams} />
+            {params.repaymentScheme === 'IRREGULAR_REPAYMENT_5' && (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center mb-4 text-blue-700">
+                  <Calendar className="w-5 h-5 mr-2" />
+                  <h3 className="font-bold text-lg">{t.repaymentPlanConfig}</h3>
+                  <Tooltip text={t.repaymentPlanConfigTooltip} />
+                </div>
+                
+                {/* 利息还款频率配置 */}
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <h4 className="font-medium text-blue-800 mb-3">{t.interestPaymentSettings}</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="relative rounded-md shadow-sm">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <select
+                        name="interestPaymentFrequency"
+                        value={params.interestPaymentFrequency}
+                        onChange={(e) => {
+                          const { name, value } = e.target;
+                          setParams(prev => ({
+                            ...prev,
+                            [name]: value
+                          }));
+                        }}
+                        className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm bg-white"
+                      >
+                          <option value="MONTHLY">{t.varInstallment.includes('每月') ? '每月' : 'Monthly'}</option>
+                          <option value="QUARTERLY">{t.varInstallment.includes('每月') ? '每季度' : 'Quarterly'}</option>
+                          <option value="BIWEEKLY">{t.varInstallment.includes('每月') ? '双周' : 'Biweekly'}</option>
+                      </select>
+                    </div>
+                    <div className="relative rounded-md shadow-sm">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <select
+                        name="interestPaymentDay"
+                        value={params.interestPaymentDay}
+                        onChange={(e) => {
+                          const { name, value } = e.target;
+                          setParams(prev => ({
+                            ...prev,
+                            [name]: parseInt(value)
+                          }));
+                        }}
+                        className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 py-2 border sm:text-sm bg-white"
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                          <option key={day} value={day}>{t.varInstallment.includes('每月') ? `${day}日` : `${day}`}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 本金还款计划 */}
+                <div>
+                  <h4 className="font-medium text-emerald-800 mb-3">{t.principalRepaymentPlan}</h4>
+                  <div className="flex gap-2 mb-4">
+                      <input
+                          type="date"
+                          className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                          style={{ colorScheme: 'light' }}
+                          value={newRepayment.date}
+                          onChange={(e) => setNewRepayment({ ...newRepayment, date: e.target.value })}
+                      />
+                      <div className="relative flex-1">
+                          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
+                              <DollarSign className="h-3 w-3 text-gray-400" />
+                          </div>
+                          <input
+                              type="number"
+                              placeholder={t.amountPlaceholder}
+                              className="border rounded px-3 py-1.5 pl-6 text-sm w-full"
+                              value={newRepayment.amount}
+                              onChange={(e) => setNewRepayment({ ...newRepayment, amount: e.target.value })}
+                          />
+                      </div>
+                      <button 
+                          onClick={addRepayment}
+                          className="bg-emerald-100 text-emerald-700 px-4 rounded hover:bg-emerald-200 transition-colors font-medium text-sm"
+                      >
+                          {t.add}
+                      </button>
+                  </div>
+
+                  <div className="max-h-32 overflow-y-auto space-y-2">
+                      {repayments.length === 0 && <p className="text-gray-400 text-xs italic text-center">{t.noPrincipalRepayments}</p>}
+                    {repayments.map(r => (
+                      <div key={r.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
+                        <div className="flex flex-col">
+                           <span className="font-bold text-emerald-600">${r.amount}</span>
+                           <span className="text-xs text-gray-500">{r.date}</span>
+                        </div>
+                        <button onClick={() => removeRepayment(r.id)} className="text-gray-400 hover:text-red-500">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
             <EventsPanel 
               holidays={holidays} 
               setHolidays={setHolidays}
@@ -146,6 +280,7 @@ const App: React.FC = () => {
               setRateChanges={setRateRanges}
               repayments={repayments}
               setRepayments={setRepayments}
+              showRepayments={params.repaymentScheme !== 'IRREGULAR_REPAYMENT_5'}
             />
             
             {/* Generate Button */}
@@ -162,7 +297,7 @@ const App: React.FC = () => {
           <div className="lg:col-span-8 space-y-5">
             
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
                 <div className="flex items-center gap-3 mb-2">
                     <div className="p-2 bg-green-100 rounded-lg text-green-700">
@@ -191,6 +326,16 @@ const App: React.FC = () => {
                     <p className="text-sm font-medium text-gray-500">{t.lastPayment}</p>
                 </div>
                 <p className="text-lg font-bold text-gray-900">{summary.lastPaymentDate ? new Date(summary.lastPaymentDate).toLocaleDateString(locale) : '-'}</p>
+              </div>
+              
+              <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-purple-100 rounded-lg text-purple-700">
+                        <Calendar className="w-5 h-5" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-500">{t.loanEndDate}</p>
+                </div>
+                <p className="text-lg font-bold text-gray-900">{summary.loanEndDate ? new Date(summary.loanEndDate).toLocaleDateString(locale) : '-'}</p>
               </div>
             </div>
 

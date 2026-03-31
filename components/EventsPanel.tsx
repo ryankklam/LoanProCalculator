@@ -11,6 +11,7 @@ interface Props {
   setRateChanges: React.Dispatch<React.SetStateAction<RateRange[]>>;
   repayments: RepaymentEvent[];
   setRepayments: React.Dispatch<React.SetStateAction<RepaymentEvent[]>>;
+  showRepayments?: boolean;
 }
 
 const Tooltip: React.FC<{ text: string }> = ({ text }) => (
@@ -29,7 +30,8 @@ export const EventsPanel: React.FC<Props> = ({
   rateChanges: rateRanges, 
   setRateChanges: setRateRanges,
   repayments,
-  setRepayments
+  setRepayments,
+  showRepayments = true
 }) => {
   const { t } = useLanguage();
   const [newHoliday, setNewHoliday] = useState({ startDate: '', endDate: '', name: '' });
@@ -277,56 +279,58 @@ export const EventsPanel: React.FC<Props> = ({
       </div>
 
       {/* Extra Repayments Section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-center mb-4 text-emerald-700">
-          <Coins className="w-5 h-5 mr-2" />
-          <h3 className="font-bold text-lg">{t.extraRepayments}</h3>
-          <Tooltip text={t.extraRepaymentsTooltip} />
-        </div>
-        
-        <div className="flex gap-2 mb-4">
-            <input
-                type="date"
-                className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
-                style={{ colorScheme: 'light' }}
-                value={newRepayment.date}
-                onChange={(e) => setNewRepayment({ ...newRepayment, date: e.target.value })}
-            />
-            <div className="relative flex-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
-                    <DollarSign className="h-3 w-3 text-gray-400" />
-                </div>
-                <input
-                    type="number"
-                    placeholder={t.amountPlaceholder}
-                    className="border rounded px-3 py-1.5 pl-6 text-sm w-full"
-                    value={newRepayment.amount}
-                    onChange={(e) => setNewRepayment({ ...newRepayment, amount: e.target.value })}
-                />
-            </div>
-            <button 
-                onClick={addRepayment}
-                className="bg-emerald-100 text-emerald-700 px-4 rounded hover:bg-emerald-200 transition-colors font-medium text-sm"
-            >
-                {t.add}
-            </button>
-        </div>
-
-        <div className="max-h-32 overflow-y-auto space-y-2">
-            {repayments.length === 0 && <p className="text-gray-400 text-xs italic text-center">{t.noRepayments}</p>}
-          {repayments.map(r => (
-            <div key={r.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
-              <div className="flex flex-col">
-                 <span className="font-bold text-emerald-600">${r.amount}</span>
-                 <span className="text-xs text-gray-500">{r.date}</span>
+      {showRepayments && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center mb-4 text-emerald-700">
+            <Coins className="w-5 h-5 mr-2" />
+            <h3 className="font-bold text-lg">{t.extraRepayments}</h3>
+            <Tooltip text={t.extraRepaymentsTooltip} />
+          </div>
+          
+          <div className="flex gap-2 mb-4">
+              <input
+                  type="date"
+                  className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                  style={{ colorScheme: 'light' }}
+                  value={newRepayment.date}
+                  onChange={(e) => setNewRepayment({ ...newRepayment, date: e.target.value })}
+              />
+              <div className="relative flex-1">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
+                      <DollarSign className="h-3 w-3 text-gray-400" />
+                  </div>
+                  <input
+                      type="number"
+                      placeholder={t.amountPlaceholder}
+                      className="border rounded px-3 py-1.5 pl-6 text-sm w-full"
+                      value={newRepayment.amount}
+                      onChange={(e) => setNewRepayment({ ...newRepayment, amount: e.target.value })}
+                  />
               </div>
-              <button onClick={() => removeRepayment(r.id)} className="text-gray-400 hover:text-red-500">
-                <Trash2 className="w-4 h-4" />
+              <button 
+                  onClick={addRepayment}
+                  className="bg-emerald-100 text-emerald-700 px-4 rounded hover:bg-emerald-200 transition-colors font-medium text-sm"
+              >
+                  {t.add}
               </button>
-            </div>
-          ))}
+          </div>
+
+          <div className="max-h-32 overflow-y-auto space-y-2">
+              {repayments.length === 0 && <p className="text-gray-400 text-xs italic text-center">{t.noRepayments}</p>}
+            {repayments.map(r => (
+              <div key={r.id} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded text-sm border border-gray-100">
+                <div className="flex flex-col">
+                   <span className="font-bold text-emerald-600">${r.amount}</span>
+                   <span className="text-xs text-gray-500">{r.date}</span>
+                </div>
+                <button onClick={() => removeRepayment(r.id)} className="text-gray-400 hover:text-red-500">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
