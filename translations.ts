@@ -1,6 +1,8 @@
 
 export type Language = 'en' | 'cn';
 
+export type TranslationDictionary = typeof dictionary['en'];
+
 export const dictionary = {
   en: {
     appTitle: 'LoanPro',
