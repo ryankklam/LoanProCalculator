@@ -168,7 +168,7 @@ const App: React.FC = () => {
           {/* Left Sidebar: Controls */}
           <div className="lg:col-span-4 space-y-5">
             <ConfigurationPanel params={params} onChange={setParams} />
-            {params.repaymentScheme === 'IRREGULAR_REPAYMENT_5' && (
+            {(params.repaymentScheme === 'IRREGULAR_REPAYMENT_5' || params.repaymentScheme === 'IRREGULAR_REPAYMENT_14') && (
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div className="flex items-center mb-4 text-blue-700">
                   <Calendar className="w-5 h-5 mr-2" />
