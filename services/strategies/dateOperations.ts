@@ -1,39 +1,49 @@
 import { DateOperations } from './interfaces';
-import { addDays, differenceInDays, isSameDay, isAfter, endOfDay, format } from 'date-fns';
+import { DateTime } from 'luxon';
 
 export const defaultDateOperations: DateOperations = {
   parseISO: (dateStr: string): Date => {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return new Date(year, month - 1, day);
+    return DateTime.fromISO(dateStr).toJSDate();
   },
 
   startOfDay: (date: Date): Date => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d;
+    return DateTime.fromJSDate(date).startOf('day').toJSDate();
   },
 
   differenceInDays: (date1: Date, date2: Date): number => {
-    return differenceInDays(date1, date2);
+    const d1 = DateTime.fromJSDate(date1);
+    const d2 = DateTime.fromJSDate(date2);
+    return Math.round(d1.diff(d2, 'days').days);
   },
 
   isSameDay: (date1: Date, date2: Date): boolean => {
-    return isSameDay(date1, date2);
+    const d1 = DateTime.fromJSDate(date1);
+    const d2 = DateTime.fromJSDate(date2);
+    return d1.hasSame(d2, 'day');
   },
 
   isAfter: (date1: Date, date2: Date): boolean => {
-    return isAfter(date1, date2);
+    const d1 = DateTime.fromJSDate(date1);
+    const d2 = DateTime.fromJSDate(date2);
+    return d1 > d2;
   },
 
   addDays: (date: Date, days: number): Date => {
-    return addDays(date, days);
+    return DateTime.fromJSDate(date).plus({ days }).toJSDate();
   },
 
   endOfDay: (date: Date): Date => {
-    return endOfDay(date);
+    return DateTime.fromJSDate(date).endOf('day').toJSDate();
   },
 
   format: (date: Date, formatStr: string): string => {
-    return format(date, formatStr);
+    const dt = DateTime.fromJSDate(date);
+    const luxonFormat = formatStr
+      .replace('yyyy', 'yyyy')
+      .replace('MM', 'MM')
+      .replace('dd', 'dd')
+      .replace('MMM', 'MMM')
+      .replace('d', 'd');
+    return dt.toFormat(luxonFormat);
   }
 };

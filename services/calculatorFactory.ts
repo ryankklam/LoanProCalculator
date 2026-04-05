@@ -1,6 +1,7 @@
 import { Calculator, CalculatorDependencies } from './calculators/types';
 import { StraightLineCalculator } from './calculators/straightLineCalculator';
 import { IrregularRepayment5Calculator } from './calculators/irregularRepayment5Calculator';
+import { IrregularRepayment14Calculator } from './calculators/irregularRepayment14Calculator';
 import { defaultDateOperations } from './strategies/dateOperations';
 import { createHolidayOperations } from './strategies/holidayOperations';
 import { createRateOperations } from './strategies/rateOperations';
@@ -29,7 +30,8 @@ export const createCalculator = (
 
   const calculators: Record<RepaymentScheme, new (deps: CalculatorDependencies) => Calculator> = {
     'EQUAL_INSTALLMENT': StraightLineCalculator,
-    'IRREGULAR_REPAYMENT_5': IrregularRepayment5Calculator
+    'IRREGULAR_REPAYMENT_5': IrregularRepayment5Calculator,
+    'IRREGULAR_REPAYMENT_14': IrregularRepayment14Calculator
   };
 
   const CalculatorClass = calculators[repaymentScheme];

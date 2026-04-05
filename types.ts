@@ -1,5 +1,5 @@
 export type DayCountConvention = 360 | 365;
-export type RepaymentScheme = 'EQUAL_INSTALLMENT' | 'IRREGULAR_REPAYMENT_5';
+export type RepaymentScheme = 'EQUAL_INSTALLMENT' | 'IRREGULAR_REPAYMENT_5' | 'IRREGULAR_REPAYMENT_14';
 export type InterestPaymentFrequency = 'MONTHLY' | 'QUARTERLY' | 'BIWEEKLY';
 
 export interface LoanParams {

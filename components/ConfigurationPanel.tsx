@@ -198,6 +198,7 @@ export const ConfigurationPanel: React.FC<Props> = ({ params, onChange }) => {
             >
                 <option value="EQUAL_INSTALLMENT">{t.straightLine}</option>
                 <option value="IRREGULAR_REPAYMENT_5">{t.irregularMode5}</option>
+                <option value="IRREGULAR_REPAYMENT_14">{t.irregularMode14}</option>
             </select>
           </div>
         </div>
