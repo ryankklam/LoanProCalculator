@@ -130,6 +130,9 @@ export const dictionary = {
     principalRepayment: 'Principal Repayment',
     interestRepayment: 'Interest Repayment',
     loanEndDate: 'Loan End Date',
+    // Irregular Repayment 14
+    principalWithInterest: 'Principal with Interest',
+    unexpiredInterest: 'Unexpired Interest',
   },
   cn: {
     appTitle: '贷款',
@@ -257,5 +260,8 @@ export const dictionary = {
     principalRepayment: '本金还款',
     interestRepayment: '利息还款',
     loanEndDate: '贷款到期日',
+    // Irregular Repayment 14
+    principalWithInterest: '利随本清',
+    unexpiredInterest: '未到期利息',
   }
 };

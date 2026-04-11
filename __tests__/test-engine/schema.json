@@ -145,6 +145,56 @@
             "required": ["actualDate", "principal", "interest", "total", "outstandingBalance"]
           },
           "description": "还款计划详情"
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "期数"
+              },
+              "segmentStartDate": {
+                "type": "string",
+                "description": "分段开始日期"
+              },
+              "segmentEndDate": {
+                "type": "string",
+                "description": "分段结束日期"
+              },
+              "daysCount": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "天数"
+              },
+              "principal": {
+                "type": "number",
+                "minimum": 0,
+                "description": "本金"
+              },
+              "interest": {
+                "type": "number",
+                "minimum": 0,
+                "description": "利息"
+              },
+              "outstandingBalance": {
+                "type": "number",
+                "minimum": 0,
+                "description": "剩余本金"
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "备注"
+              }
+            },
+            "required": ["period", "segmentStartDate", "segmentEndDate", "daysCount", "interest"]
+          },
+          "description": "分段明细"
         }
       },
       "required": ["totalInterest", "totalPaid"]

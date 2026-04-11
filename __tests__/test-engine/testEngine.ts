@@ -41,7 +41,7 @@ function runTest(testData: any): void {
     holidays as Holiday[],
     rateRanges as RateRange[],
     repayments as RepaymentEvent[],
-    'en'
+    'cn'
   );
   
   // 验证总利息和总还款
@@ -72,6 +72,39 @@ function runTest(testData: any): void {
       }
       if (expectedInstallment.outstandingBalance !== undefined) {
         expect(actualInstallment.outstandingBalance).toBeCloseTo(expectedInstallment.outstandingBalance, 2);
+      }
+    });
+  }
+
+  // 验证分段明细
+  if (testData.expected.segments) {
+    testData.expected.segments.forEach((expectedSegment: any, index: number) => {
+      // 找到对应期数的分段明细
+      const actualSegments = result.schedule.filter(
+        (item: any) => item.period === expectedSegment.period && item.type === 'SEGMENT'
+      );
+      
+      expect(actualSegments.length).toBeGreaterThan(index);
+      const actualSegment = actualSegments[index];
+      
+      expect(actualSegment).toBeDefined();
+      if (expectedSegment.segmentStartDate !== undefined) {
+        expect(actualSegment.segmentStartDate).toBe(expectedSegment.segmentStartDate);
+      }
+      if (expectedSegment.segmentEndDate !== undefined) {
+        expect(actualSegment.segmentEndDate).toBe(expectedSegment.segmentEndDate);
+      }
+      if (expectedSegment.daysCount !== undefined) {
+        expect(actualSegment.daysCount).toBe(expectedSegment.daysCount);
+      }
+      if (expectedSegment.interest !== undefined) {
+        expect(actualSegment.interest).toBeCloseTo(expectedSegment.interest, 2);
+      }
+      if (expectedSegment.outstandingBalance !== undefined) {
+        expect(actualSegment.outstandingBalance).toBeCloseTo(expectedSegment.outstandingBalance, 2);
+      }
+      if (expectedSegment.notes !== undefined) {
+        expect(actualSegment.notes).toEqual(expectedSegment.notes);
       }
     });
   }

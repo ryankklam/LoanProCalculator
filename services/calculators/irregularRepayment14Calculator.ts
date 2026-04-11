@@ -128,6 +128,56 @@ export class IrregularRepayment14Calculator implements Calculator {
           effectiveRate: activeSegmentRate,
           notes: [`${t.noteBasis}: $${currentBalance.toFixed(2)}`]
         });
+
+        // 对于本金还款，添加利随本清和未到期利息的分段明细
+        if (event.type === 'PRINCIPAL' && event.amount > 0 && !dateOps.isSameDay(event.date, loanEndDate)) {
+          const principalPayment = event.amount;
+          const remainingBalance = currentBalance - principalPayment;
+          
+          // 计算利随本清利息（还款本金对应的利息）
+          const dailyRate = params.initialRate / 100 / params.dayCountConvention;
+          const dailyInterest = principalPayment * dailyRate;
+          const principalWithInterest = dailyInterest * segmentDaysCounter;
+          
+          // 计算未到期利息（剩余本金对应的利息）
+          const unexpiredInterest = segmentInterest - principalWithInterest;
+          
+          // 添加利随本清明细
+          schedule.push({
+            type: 'SEGMENT',
+            period: i,
+            nominalDate: dateOps.format(actualDate, 'yyyy-MM-dd'),
+            actualDate: dateOps.format(actualDate, 'yyyy-MM-dd'),
+            segmentStartDate: dateOps.format(lastEventDate, 'yyyy-MM-dd'),
+            segmentEndDate: dateOps.format(actualDate, 'yyyy-MM-dd'),
+            daysCount: segmentDaysCounter,
+            principal: 0,
+            interest: principalWithInterest,
+            total: 0,
+            outstandingBalance: currentBalance,
+            effectiveRate: activeSegmentRate,
+            notes: [t.principalWithInterest, `${t.noteBasis}: $${principalPayment.toFixed(2)}`]
+          });
+          
+          // 添加未到期利息明细
+          if (remainingBalance > 0.005 && unexpiredInterest > 0.005) {
+            schedule.push({
+              type: 'SEGMENT',
+              period: i,
+              nominalDate: dateOps.format(actualDate, 'yyyy-MM-dd'),
+              actualDate: dateOps.format(actualDate, 'yyyy-MM-dd'),
+              segmentStartDate: dateOps.format(lastEventDate, 'yyyy-MM-dd'),
+              segmentEndDate: dateOps.format(actualDate, 'yyyy-MM-dd'),
+              daysCount: segmentDaysCounter,
+              principal: 0,
+              interest: unexpiredInterest,
+              total: 0,
+              outstandingBalance: remainingBalance,
+              effectiveRate: activeSegmentRate,
+              notes: [`${t.noteBasis}: $${remainingBalance.toFixed(2)}`, t.unexpiredInterest]
+            });
+          }
+        }
       }
 
       let effectiveRate = 0;
