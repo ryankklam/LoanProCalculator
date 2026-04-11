@@ -1,0 +1,231 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Irregular Repayment 14 Test Case",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "测试用例标题"
+    },
+    "description": {
+      "type": "string",
+      "description": "测试用例描述"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "测试用例优先级"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "inactive"],
+      "description": "测试用例状态"
+    },
+    "params": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "贷款金额"
+        },
+        "initialRate": {
+          "type": "number",
+          "minimum": 0,
+          "description": "年利率"
+        },
+        "tenureMonths": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "贷款期限（月）"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "起息日"
+        },
+        "dayCountConvention": {
+          "type": "integer",
+          "enum": [360, 365],
+          "description": "年基准天数"
+        },
+        "holidayShiftMode": {
+          "type": "string",
+          "enum": ["AFTER", "BEFORE", "NONE"],
+          "description": "假期调整模式"
+        },
+        "adjustmentStrategy": {
+          "type": "string",
+          "enum": ["CHANGE_INSTALLMENT", "CHANGE_TENURE"],
+          "description": "调整策略"
+        },
+        "repaymentScheme": {
+          "type": "string",
+          "description": "还款方案"
+        },
+        "interestPaymentFrequency": {
+          "type": "string",
+          "enum": ["MONTHLY", "QUARTERLY", "ANNUAL"],
+          "description": "利息还款频率"
+        },
+        "interestPaymentDay": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 31,
+          "description": "利息还款日"
+        }
+      },
+      "required": ["amount", "initialRate", "tenureMonths", "startDate", "dayCountConvention", "repaymentScheme"]
+    },
+    "repayments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "还款事件ID"
+          },
+          "date": {
+            "type": "string",
+            "description": "还款日期"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "还款金额"
+          }
+        },
+        "required": ["id", "date", "amount"]
+      },
+      "description": "本金还款计划"
+    },
+    "expected": {
+      "type": "object",
+      "properties": {
+        "totalInterest": {
+          "type": "number",
+          "minimum": 0,
+          "description": "总利息"
+        },
+        "totalPaid": {
+          "type": "number",
+          "minimum": 0,
+          "description": "总还款"
+        },
+        "installments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actualDate": {
+                "type": "string",
+                "description": "实际还款日期"
+              },
+              "principal": {
+                "type": "number",
+                "minimum": 0,
+                "description": "本金"
+              },
+              "interest": {
+                "type": "number",
+                "minimum": 0,
+                "description": "利息"
+              },
+              "total": {
+                "type": "number",
+                "minimum": 0,
+                "description": "合计"
+              },
+              "outstandingBalance": {
+                "type": "number",
+                "minimum": 0,
+                "description": "剩余本金"
+              }
+            },
+            "required": ["actualDate", "principal", "interest", "total", "outstandingBalance"]
+          },
+          "description": "还款计划详情"
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "期数"
+              },
+              "segmentStartDate": {
+                "type": "string",
+                "description": "分段开始日期"
+              },
+              "segmentEndDate": {
+                "type": "string",
+                "description": "分段结束日期"
+              },
+              "daysCount": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "天数"
+              },
+              "principal": {
+                "type": "number",
+                "minimum": 0,
+                "description": "本金"
+              },
+              "interest": {
+                "type": "number",
+                "minimum": 0,
+                "description": "利息"
+              },
+              "outstandingBalance": {
+                "type": "number",
+                "minimum": 0,
+                "description": "剩余本金"
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "备注"
+              }
+            },
+            "required": ["period", "segmentStartDate", "segmentEndDate", "daysCount", "interest"]
+          },
+          "description": "分段明细"
+        }
+      },
+      "required": ["totalInterest", "totalPaid"]
+    },
+    "holidays": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "节假日列表"
+    },
+    "rateRanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": ["startDate", "endDate", "rate"]
+      },
+      "description": "利率范围"
+    }
+  },
+  "required": ["title", "description", "params", "expected"]
+}
